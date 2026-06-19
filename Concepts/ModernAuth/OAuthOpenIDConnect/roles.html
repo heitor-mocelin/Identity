@@ -17,7 +17,7 @@
       <a href="index.html">Home</a>
       <a href="why.html">Why</a>
       <a href="roles.html" class="active">Roles</a>
-      <a href="authorization-code-flow.html">Flow</a>
+      <a href="flows.html">Flows</a>
       <a href="tokens.html">Tokens</a>
       <a href="openid-connect.html">OIDC</a>
       <a href="security.html">Security</a>
@@ -134,22 +134,22 @@
     <table>
       <thead><tr><th>Grant type</th><th>Used for</th><th>Status today</th></tr></thead>
       <tbody>
-        <tr><td><strong>Authorization Code</strong></td><td>Web apps, SPAs, mobile — almost everything with a user.</td><td><span style="color:var(--ok)">✓ Recommended</span> (with PKCE)</td></tr>
-        <tr><td><strong>Client Credentials</strong></td><td>App-to-app, no user involved (e.g. a backend job).</td><td><span style="color:var(--ok)">✓ Recommended</span> for machine-to-machine</td></tr>
-        <tr><td><strong>Implicit</strong></td><td>Old browser-based apps; returned tokens directly in the URL.</td><td><span style="color:var(--danger)">✗ Discouraged</span> — use Code + PKCE</td></tr>
-        <tr><td><strong>Resource Owner Password Credentials</strong></td><td>App collects your username/password directly.</td><td><span style="color:var(--danger)">✗ Discouraged</span> — defeats the point</td></tr>
+        <tr><td><strong><a href="authorization-code-flow.html">Authorization Code</a></strong></td><td>Web apps, SPAs, mobile — almost everything with a user.</td><td><span style="color:var(--ok)">✓ Recommended</span> (with PKCE)</td></tr>
+        <tr><td><strong><a href="flow-client-credentials.html">Client Credentials</a></strong></td><td>App-to-app, no user involved (e.g. a backend job).</td><td><span style="color:var(--ok)">✓ Recommended</span> for machine-to-machine</td></tr>
+        <tr><td><strong><a href="flow-implicit.html">Implicit</a></strong></td><td>Old browser-based apps; returned tokens directly in the URL.</td><td><span style="color:var(--danger)">✗ Retired</span> — use Code + PKCE</td></tr>
+        <tr><td><strong><a href="flow-ropc.html">Resource Owner Password Credentials</a></strong></td><td>App collects your username/password directly.</td><td><span style="color:var(--danger)">✗ Retired</span> — defeats the point</td></tr>
       </tbody>
     </table>
     <div class="callout">
       <span class="tag info">// The takeaway</span>
       <p>For nearly every modern app with a user, the answer is the <strong>Authorization Code flow with PKCE</strong>.
-      That’s our next chapter.</p>
+      Explore them all in the <a href="flows.html">Flows hub →</a></p>
     </div>
   </section>
 
   <div class="pager">
     <a class="prev" href="why.html"><span class="dir">← prev</span><span class="ttl">01 · Why OAuth exists</span></a>
-    <a class="next" href="authorization-code-flow.html"><span class="dir">next →</span><span class="ttl">03 · The Authorization Code flow</span></a>
+    <a class="next" href="flows.html"><span class="dir">next →</span><span class="ttl">03 · OAuth 2.0 flows</span></a>
   </div>
 
 </main>

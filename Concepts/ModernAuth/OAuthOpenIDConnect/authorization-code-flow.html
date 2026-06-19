@@ -6,6 +6,7 @@
 <title>The Authorization Code Flow (+ PKCE) — Auth Guide</title>
 <meta name="description" content="A step-by-step walkthrough of the OAuth 2.0 Authorization Code flow and how PKCE protects public clients." />
 <script src="app.js"></script>
+<script src="flow.js"></script>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,7 +18,7 @@
       <a href="index.html">Home</a>
       <a href="why.html">Why</a>
       <a href="roles.html">Roles</a>
-      <a href="authorization-code-flow.html" class="active">Flow</a>
+      <a href="flows.html" class="active">Flows</a>
       <a href="tokens.html">Tokens</a>
       <a href="openid-connect.html">OIDC</a>
       <a href="security.html">Security</a>
@@ -28,8 +29,21 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="kicker">// 03 — The main flow</div>
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">OAuth &amp; OIDC</a><span class="sep">/</span>
+      <a href="flows.html">Flows</a><span class="sep">/</span>
+      <span class="here">Authorization Code</span>
+    </nav>
+    <div class="kicker">// Flows — the recommended one</div>
     <h1>The Authorization Code flow (+ PKCE)</h1>
+    <div class="statline">
+      <span class="chip ok">✓ Recommended</span>
+      <span class="chip neutral">Web · SPA · Mobile · Desktop</span>
+      <span class="chip neutral">RFC 6749 §4.1 · RFC 7636</span>
+    </div>
     <p class="lead">This is <em>the</em> flow — the one you should reach for in almost every app with a user.
       It looks like a lot of redirects, but each step exists for a precise security reason. Let’s walk it slowly.</p>
   </div>
@@ -50,6 +64,8 @@
 
   <section>
     <h2>Step by step</h2>
+    <p class="muted">Watch it play out, then read each step below:</p>
+    <div class="seqflow" data-flow="oauth-code"></div>
     <div class="flow">
       <div class="step"><div class="n">1</div><div class="b">
         <h4>You click “Connect”</h4>
@@ -185,19 +201,20 @@
 
   <section>
     <h2>A note on the other flows</h2>
+    <p class="muted">Each of these has its own deep-dive in the <a href="flows.html">Flows hub</a>:</p>
     <table>
       <thead><tr><th>Flow</th><th>When it fits</th></tr></thead>
       <tbody>
-        <tr><td><strong>Client Credentials</strong></td><td>No user at all — a backend service talking to an API as itself. The app authenticates with its own credentials and gets a token.</td></tr>
-        <tr><td><strong>Device Authorization</strong> (RFC 8628)</td><td>Input-constrained devices (TVs, CLIs). You enter a code on your phone to authorize the device.</td></tr>
-        <tr><td><strong>Implicit</strong> / <strong>Password</strong></td><td>Legacy. Avoid for new work — see the <a href="roles.html">Roles</a> and <a href="security.html">Security</a> pages.</td></tr>
+        <tr><td><strong><a href="flow-client-credentials.html">Client Credentials</a></strong></td><td>No user at all — a backend service talking to an API as itself. The app authenticates with its own credentials and gets a token.</td></tr>
+        <tr><td><strong><a href="flow-device-code.html">Device Authorization</a></strong> (RFC 8628)</td><td>Input-constrained devices (TVs, CLIs). You enter a code on your phone to authorize the device.</td></tr>
+        <tr><td><strong><a href="flow-implicit.html">Implicit</a></strong> / <strong><a href="flow-ropc.html">Password</a></strong></td><td>Retired. Avoid for new work — each page explains exactly why.</td></tr>
       </tbody>
     </table>
   </section>
 
   <div class="pager">
-    <a class="prev" href="roles.html"><span class="dir">← prev</span><span class="ttl">02 · Roles &amp; key terms</span></a>
-    <a class="next" href="tokens.html"><span class="dir">next →</span><span class="ttl">04 · Tokens: access, refresh &amp; bearer</span></a>
+    <a class="prev" href="flows.html"><span class="dir">← flows hub</span><span class="ttl">All OAuth 2.0 flows</span></a>
+    <a class="next" href="flow-client-credentials.html"><span class="dir">next flow →</span><span class="ttl">Client Credentials</span></a>
   </div>
 
 </main>

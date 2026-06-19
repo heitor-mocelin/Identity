@@ -57,6 +57,16 @@
         <tr><td><code>&lt;AttributeStatement&gt;</code></td><td>What do we know about them? (email, role, groups…)</td></tr>
       </tbody>
     </table>
+    <p class="muted" style="margin-top:14px">Visually, an assertion nests like this — a signed envelope wrapping who, when, how, and what:</p>
+    <div class="anat">
+      <div class="anat-h">&lt;saml:Assertion&gt;</div>
+      <div class="anat-block"><h4>Issuer<span class="tagk">who issued it</span></h4><p>The Identity Provider that minted this assertion.</p></div>
+      <div class="anat-block seal"><h4>Signature<span class="tagk">XML-DSig seal</span></h4><p>Cryptographic proof of authenticity &amp; integrity — verified with the IdP’s certificate.</p></div>
+      <div class="anat-block"><h4>Subject → NameID<span class="tagk">who</span></h4><p>Identifies the user, plus SubjectConfirmation (recipient, expiry, InResponseTo).</p></div>
+      <div class="anat-block"><h4>Conditions<span class="tagk">when / for whom</span></h4><p>NotBefore / NotOnOrAfter window + AudienceRestriction naming the one valid SP.</p></div>
+      <div class="anat-block"><h4>AuthnStatement<span class="tagk">how they logged in</span></h4><p>When &amp; with what strength the user authenticated (e.g. password, MFA).</p></div>
+      <div class="anat-block"><h4>AttributeStatement<span class="tagk">what we know</span></h4><p>Facts about the user: email, role, groups — used by the SP for authorization.</p></div>
+    </div>
   </section>
 
   <section>

@@ -6,6 +6,7 @@
 <title>OpenID Connect &amp; ID Tokens — Auth Guide</title>
 <meta name="description" content="How OpenID Connect adds authentication on top of OAuth 2.0: ID tokens, claims, and the UserInfo endpoint." />
 <script src="app.js"></script>
+<script src="flow.js"></script>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,7 +18,7 @@
       <a href="index.html">Home</a>
       <a href="why.html">Why</a>
       <a href="roles.html">Roles</a>
-      <a href="authorization-code-flow.html">Flow</a>
+      <a href="flows.html">Flows</a>
       <a href="tokens.html">Tokens</a>
       <a href="openid-connect.html" class="active">OIDC</a>
       <a href="security.html">Security</a>
@@ -69,8 +70,17 @@
   <section>
     <h2>The ID token: a signed “who you are” receipt</h2>
     <p>The ID token is a <strong>JWT</strong> (JSON Web Token) — three Base64URL parts (header, payload, signature) joined by
-      dots. It’s issued <em>to the client</em>, and the client verifies its signature to trust it. Decoded, the payload
-      (the “claims”) looks like this:</p>
+      dots. It’s issued <em>to the client</em>, and the client verifies its signature to trust it. Here’s the shape of the
+      raw token:</p>
+    <div class="jwt">
+      <span class="jwt-seg h">eyJhbGciOiJSUzI1NiIsImtpZCI6ImFiYyJ9</span><span class="jwt-dot">.</span><span class="jwt-seg p">eyJpc3MiOiJodHRwczovL2FjY291bnRzLmV4YW1wbGUuY29tIiwic3ViIjoiMjQ4Mjg5NzYxMDAxIn0</span><span class="jwt-dot">.</span><span class="jwt-seg s">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</span>
+    </div>
+    <div class="jwt-legend">
+      <div class="lg h"><h4><span class="sw"></span>Header</h4><p>Which algorithm &amp; key signed it.</p></div>
+      <div class="lg p"><h4><span class="sw"></span>Payload</h4><p>The claims — who you are, who it’s for, when it expires.</p></div>
+      <div class="lg s"><h4><span class="sw"></span>Signature</h4><p>The cryptographic seal the app verifies.</p></div>
+    </div>
+    <p>Decoded, the payload (the “claims”) looks like this:</p>
     <div class="terminal">
       <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">id_token payload (decoded JWT)</span></div>
 <pre>{
@@ -99,7 +109,8 @@
   <section>
     <h2>Putting it together: “Sign in with…”</h2>
     <p>An OIDC login is just the Authorization Code flow from <a href="authorization-code-flow.html">chapter 3</a> with
-      <code class="inl">scope=openid</code> added. The difference is what comes back:</p>
+      <code class="inl">scope=openid</code> added. Watch it play, then read the steps:</p>
+    <div class="seqflow" data-flow="oidc-login"></div>
     <div class="flow">
       <div class="step"><div class="n">1</div><div class="b">
         <h4>App requests <code class="inl">openid</code> (plus a <code class="inl">nonce</code>)</h4>

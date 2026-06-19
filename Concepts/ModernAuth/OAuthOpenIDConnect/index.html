@@ -6,6 +6,7 @@
 <title>OAuth 2.0 &amp; OpenID Connect — A Friendly Field Guide</title>
 <meta name="description" content="A plain-language, vendor-agnostic guide to OAuth 2.0 and OpenID Connect: the why, how, and what — from first principles to advanced security." />
 <script src="app.js"></script>
+<script src="flow.js"></script>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,7 +18,7 @@
       <a href="index.html" class="active">Home</a>
       <a href="why.html">Why</a>
       <a href="roles.html">Roles</a>
-      <a href="authorization-code-flow.html">Flow</a>
+      <a href="flows.html">Flows</a>
       <a href="tokens.html">Tokens</a>
       <a href="openid-connect.html">OIDC</a>
       <a href="security.html">Security</a>
@@ -65,7 +66,10 @@
 
   <section>
     <h2>A picture is worth a thousand redirects</h2>
-    <p class="muted">The canonical OAuth 2.0 dance, straight from RFC&nbsp;6749 — four players passing a request around:</p>
+    <p class="muted">Press play and watch the request travel between the four players. This is the canonical OAuth 2.0 dance
+      from RFC&nbsp;6749:</p>
+    <div class="seqflow" data-flow="oauth-abstract"></div>
+    <p class="muted" style="margin-top:18px">Prefer the raw spec diagram? Here’s the same flow as drawn in RFC&nbsp;6749 §1.2:</p>
     <div class="terminal">
       <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">abstract-protocol-flow — RFC 6749 §1.2</span></div>
 <pre>     <span class="c">+--------+                               +---------------+</span>
@@ -88,7 +92,7 @@
     </div>
     <p class="muted" style="font-size:0.9rem">
       Don’t worry if this looks cryptic right now — by the end of the
-      <a href="roles.html">Roles</a> and <a href="authorization-code-flow.html">Flow</a> pages it will read like plain English.
+      <a href="roles.html">Roles</a> and <a href="flows.html">Flows</a> pages it will read like plain English.
     </p>
   </section>
 
@@ -111,10 +115,10 @@
         <span class="go">read →</span>
       </a>
 
-      <a class="concept" href="authorization-code-flow.html">
+      <a class="concept" href="flows.html">
         <span class="num">03</span>
-        <h3>The Authorization Code flow (+ PKCE)</h3>
-        <p>The recommended flow, step by step. Why the redirect dance is secure, and how PKCE protects mobile &amp; SPA apps.</p>
+        <h3>All the flows (grant types)</h3>
+        <p>Every flow, deep: Authorization Code + PKCE, Client Credentials, Device Code — plus the retired Implicit &amp; Password flows and <em>why</em> they were retired.</p>
         <span class="go">read →</span>
       </a>
 

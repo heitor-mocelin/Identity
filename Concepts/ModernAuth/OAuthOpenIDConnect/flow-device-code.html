@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Device Authorization Flow — OAuth 2.0 Flows</title>
+<meta name="description" content="The OAuth 2.0 Device Authorization grant (RFC 8628) for TVs, consoles and CLIs: how the second-device login works, polling, and security." />
+<script src="app.js"></script>
+<script src="flow.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="flows.html" class="active">Flows</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">OAuth &amp; OIDC</a><span class="sep">/</span>
+      <a href="flows.html">Flows</a><span class="sep">/</span>
+      <span class="here">Device Authorization</span>
+    </nav>
+    <div class="kicker">// Flows — input-constrained devices</div>
+    <h1>Device Authorization flow</h1>
+    <div class="statline">
+      <span class="chip ok">✓ Recommended</span>
+      <span class="chip neutral">TVs · consoles · CLIs · IoT</span>
+      <span class="chip neutral">RFC 8628</span>
+    </div>
+    <p class="lead">Ever signed into a streaming app on a TV by visiting a URL on your phone and typing a short code?
+      That’s this flow. It exists for devices that <strong>can’t show a browser or take typed passwords easily</strong>.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The one-sentence idea</h2>
+    <div class="card">
+      <p style="margin:0">The device gets a short <strong>user code</strong> and a <strong>verification URL</strong> from the
+        authorization server, shows them on screen, and <strong>polls</strong> in the background while you complete the
+        login on a second device (your phone or laptop). When you approve, the device’s next poll returns a token.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Watch it happen</h2>
+    <div class="seqflow" data-flow="device-code"></div>
+  </section>
+
+  <section>
+    <h2>Why a second device?</h2>
+    <p>Typing a password with a TV remote is miserable, and many devices have no browser to run a normal redirect-based
+      login. The Device Authorization grant cleverly <strong>moves the hard part — authentication and consent — onto a
+      device you already trust and that has a real keyboard</strong>. The constrained device only ever displays a code
+      and waits.</p>
+  </section>
+
+  <section>
+    <h2>What the wire looks like</h2>
+    <p class="muted">Step 1 — the device asks to begin (RFC 8628 §3.1–3.2):</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">1 — device authorization request</span></div>
+<pre><span class="cmd">POST</span> /device_authorization  <span class="out">HTTP/1.1</span>
+<span class="out">Host: auth.example.com</span>
+
+<span class="k">client_id</span>=<span class="s">tv-app-9000</span>&amp;<span class="k">scope</span>=<span class="s">profile</span>
+
+<span class="c"># response:</span>
+{
+  <span class="k">"device_code"</span>: <span class="s">"GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"</span>,
+  <span class="k">"user_code"</span>: <span class="s">"WDJB-MJHT"</span>,
+  <span class="k">"verification_uri"</span>: <span class="s">"https://example.com/device"</span>,
+  <span class="k">"expires_in"</span>: <span class="g">1800</span>,
+  <span class="k">"interval"</span>: <span class="g">5</span>
+}</pre>
+    </div>
+    <p class="muted">The device shows: <em>“Go to example.com/device and enter <strong>WDJB-MJHT</strong>.”</em>
+      Meanwhile it polls (step 5), respecting <code class="inl">interval</code> seconds between tries:</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">5 — device polls the token endpoint</span></div>
+<pre><span class="cmd">POST</span> /token  <span class="out">HTTP/1.1</span>
+
+<span class="k">grant_type</span>=<span class="s">urn:ietf:params:oauth:grant-type:device_code</span>
+&amp;<span class="k">device_code</span>=<span class="s">GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS</span>
+&amp;<span class="k">client_id</span>=<span class="s">tv-app-9000</span>
+
+<span class="c"># while you haven't approved yet:</span>
+{ <span class="k">"error"</span>: <span class="s">"authorization_pending"</span> }     <span class="c"># keep polling</span>
+<span class="c"># after you approve:</span>
+{ <span class="k">"access_token"</span>: <span class="s">"2YotnFZFEjr1zCsicMWpAA"</span>, <span class="k">"token_type"</span>: <span class="s">"Bearer"</span>, <span class="k">"expires_in"</span>: <span class="g">3600</span> }</pre>
+    </div>
+    <div class="callout">
+      <span class="tag info">// polite polling</span>
+      <p>The server can answer <code class="inl">authorization_pending</code> (not done yet) or <code class="inl">slow_down</code>
+      (poll less often). The device must honour the <code class="inl">interval</code> so it doesn’t hammer the endpoint.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Security notes</h2>
+    <ul>
+      <li><strong>Short, human-friendly user codes</strong> with limited lifetime and rate-limiting, so they can’t be guessed or brute-forced.</li>
+      <li>The verification page should clearly show <em>which device and app</em> you’re authorizing, to resist social-engineering (“enter this code” scams).</li>
+      <li>The <code class="inl">device_code</code> is the secret that actually redeems the token — it stays in the back channel, never shown to the user.</li>
+      <li>Bind the issued token to least-privilege scopes; many devices only need read access.</li>
+    </ul>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="flow-client-credentials.html"><span class="dir">← prev flow</span><span class="ttl">Client Credentials</span></a>
+    <a class="next" href="flow-implicit.html"><span class="dir">next flow →</span><span class="ttl">Implicit (retired)</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Device Authorization · RFC 8628.</span>
+    <span><a href="flows.html">← flows hub</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

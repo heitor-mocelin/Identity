@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Implicit Flow (Retired) — OAuth 2.0 Flows</title>
+<meta name="description" content="The retired OAuth 2.0 Implicit grant: how it worked, why it returned tokens in the URL fragment, the security problems, and what replaced it." />
+<script src="app.js"></script>
+<script src="flow.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="flows.html" class="active">Flows</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">OAuth &amp; OIDC</a><span class="sep">/</span>
+      <a href="flows.html">Flows</a><span class="sep">/</span>
+      <span class="here">Implicit</span>
+    </nav>
+    <div class="kicker">// Flows — retired ⚠</div>
+    <h1>The Implicit flow <span style="font-size:0.5em;vertical-align:middle" class="chip bad">✗ Retired</span></h1>
+    <div class="statline">
+      <span class="chip bad">✗ Do not use for new apps</span>
+      <span class="chip neutral">Replaced by Code + PKCE</span>
+      <span class="chip neutral">RFC 6749 §4.2 · RFC 9700</span>
+    </div>
+    <p class="lead">In the early 2010s, browsers couldn’t make cross-origin API calls easily and single-page apps couldn’t
+      keep a secret. The Implicit flow was a <em>pragmatic shortcut</em> for that era — and it’s now <strong>retired</strong>
+      because the shortcuts turned out to be security holes.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="callout danger">
+      <span class="tag">Don’t build new apps on this</span>
+      <p>Current best practice (RFC&nbsp;9700, the OAuth 2.0 Security BCP) says the Implicit grant <strong>SHOULD NOT be
+      used</strong>. Use the <a href="authorization-code-flow.html">Authorization Code flow with PKCE</a> instead — it works
+      perfectly for SPAs today. This page exists so you understand legacy systems and <em>why</em> the change happened.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it worked</h2>
+    <p>The Implicit flow collapsed the two-step Authorization Code dance into one. Instead of returning a <em>code</em> to be
+      exchanged on the back channel, the authorization server returned the <strong>access token directly</strong> in the
+      redirect — in the URL <strong>fragment</strong> (the part after <code class="inl">#</code>). There was
+      <strong>no token exchange</strong>, <strong>no client authentication</strong>, and <strong>no PKCE</strong>.</p>
+    <div class="seqflow" data-flow="implicit"></div>
+    <p class="muted">Notice steps 4 and 5 turn red: the moment the token lands in the URL fragment, it’s exposed.</p>
+  </section>
+
+  <section>
+    <h2>What the wire looked like</h2>
+    <p class="muted">The giveaway is <code class="inl">response_type=token</code> and the token coming back in the
+      <code class="inl">#</code> fragment:</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">request &amp; response (RFC 6749 §4.2)</span></div>
+<pre><span class="c"># 1. authorization request</span>
+<span class="cmd">GET</span> /authorize?<span class="k">response_type</span>=<span class="s">token</span>
+            &amp;<span class="k">client_id</span>=<span class="s">spa-app-123</span>
+            &amp;<span class="k">redirect_uri</span>=<span class="s">https://app.example/cb</span>
+            &amp;<span class="k">scope</span>=<span class="s">photos.read</span>
+
+<span class="c"># 2. response — token right in the URL fragment ⚠</span>
+<span class="cmd">HTTP/1.1</span> <span class="g">302 Found</span>
+<span class="out">Location:</span> https://app.example/cb<span class="s">#access_token=2YotnFZFEjr1zCsicMWpAA</span>&amp;token_type=Bearer&amp;expires_in=3600</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why it was retired — the problems</h2>
+    <table>
+      <thead><tr><th>Problem</th><th>Why it’s dangerous</th></tr></thead>
+      <tbody>
+        <tr><td>Token in the URL fragment</td><td>It lands in <strong>browser history</strong>, can leak via the <code>Referer</code> header, web server logs, and analytics scripts.</td></tr>
+        <tr><td>Exposed to any script on the page</td><td>A single <strong>XSS</strong> flaw or malicious third-party script can read the token straight out of the page.</td></tr>
+        <tr><td>No client authentication</td><td>The token is issued on the front channel with nothing proving the app’s identity.</td></tr>
+        <tr><td>No PKCE protection</td><td>Nothing binds the response to the request that started it, enabling token injection / substitution.</td></tr>
+        <tr><td>No refresh tokens</td><td>By design it couldn’t issue refresh tokens, so apps used long-lived access tokens (worse if leaked) or constant re-auth.</td></tr>
+        <tr><td>Access token ≠ proof of identity</td><td>Apps that used it for “login” were exposed to token-substitution attacks — part of why <a href="openid-connect.html">OpenID Connect</a> was created.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <span class="tag">The root cause</span>
+      <p>Implicit optimised away the <strong>back channel</strong> — but that channel is exactly where tokens stay private
+      and where PKCE proves the exchange is legitimate. Remove it and the powerful credential ends up in the most exposed
+      place possible: the browser’s address bar.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What replaced it</h2>
+    <p>Two things made Implicit unnecessary:</p>
+    <ul>
+      <li><strong>PKCE</strong> (RFC&nbsp;7636) let <em>public</em> clients use the Authorization Code flow safely — no client secret required.</li>
+      <li><strong>CORS</strong> matured, so SPAs can make the back-channel token request directly from JavaScript.</li>
+    </ul>
+    <p>Together they mean an SPA can use <a href="authorization-code-flow.html">Authorization Code + PKCE</a> and get all of
+      Implicit’s convenience with none of its exposure — including refresh-token support via rotation.</p>
+    <div class="callout ok">
+      <span class="tag">Migrate like this</span>
+      <p><code class="inl">response_type=token</code> → <code class="inl">response_type=code</code> + a
+      <code class="inl">code_challenge</code>. Drop the fragment-parsing; do a proper token exchange instead.</p>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="flow-device-code.html"><span class="dir">← prev flow</span><span class="ttl">Device Authorization</span></a>
+    <a class="next" href="flow-ropc.html"><span class="dir">next flow →</span><span class="ttl">Password / ROPC (retired)</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Implicit (retired) · RFC 6749 §4.2, RFC 9700.</span>
+    <span><a href="flows.html">← flows hub</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

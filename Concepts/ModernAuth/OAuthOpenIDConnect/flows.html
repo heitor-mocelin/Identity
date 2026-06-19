@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OAuth 2.0 Flows — Every Grant Type, Deep Dive</title>
+<meta name="description" content="A complete map of OAuth 2.0 grant types: Authorization Code + PKCE, Client Credentials, Device Code, and the retired Implicit and Password flows — with why they were retired." />
+<script src="app.js"></script>
+<script src="flow.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="flows.html" class="active">Flows</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">OAuth &amp; OIDC</a><span class="sep">/</span>
+      <span class="here">Flows</span>
+    </nav>
+    <div class="kicker">// 03 — every grant type, mapped</div>
+    <h1>OAuth 2.0 flows</h1>
+    <p class="lead">A “flow” (or <em>grant type</em>) is the recipe an app follows to obtain a token. OAuth defines several —
+      some are today’s best practice, others have been <strong>retired</strong> because the world found better, safer
+      patterns. This hub covers <strong>all of them</strong>, including <em>why</em> the retired ones fell out of favour.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>Pick the right flow in 10 seconds</h2>
+    <p class="muted">The choice almost always comes down to two questions: <strong>is there a human present?</strong> and
+      <strong>can the app keep a secret?</strong></p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">choose-a-flow</span></div>
+<pre><span class="prompt">?</span> <span class="cmd">Is a human logging in?</span>
+   │
+   ├─ <span class="k">No</span>  (server-to-server, cron, daemon) ─────▶ <span class="g">Client Credentials</span>
+   │
+   └─ <span class="k">Yes</span>
+        │
+        ├─ <span class="cmd">Device has no browser/keyboard?</span> (TV, CLI) ─▶ <span class="g">Device Authorization</span>
+        │
+        └─ <span class="cmd">Normal web / SPA / mobile / desktop app</span> ─▶ <span class="g">Authorization Code + PKCE</span>
+
+<span class="c"># Implicit and Password (ROPC) used to appear here — both are now retired.</span>
+<span class="c"># See below for how they worked and why they're gone.</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>The recommended flows</h2>
+
+    <a class="hub-row" href="authorization-code-flow.html" style="margin-top:6px">
+      <div class="ic">🔑</div>
+      <div class="body">
+        <h3>Authorization Code + PKCE <span class="flowcard-status ok">✓ Recommended</span></h3>
+        <p>The default for any app with a user — web, SPA, mobile, desktop. Splits a front-channel code from back-channel tokens; PKCE protects public clients.</p>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="hub-row" href="flow-client-credentials.html">
+      <div class="ic">⚙️</div>
+      <div class="body">
+        <h3>Client Credentials <span class="flowcard-status ok">✓ Recommended</span></h3>
+        <p>No user at all. A backend service authenticates as itself to call an API — cron jobs, daemons, microservices.</p>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="hub-row" href="flow-device-code.html">
+      <div class="ic">📺</div>
+      <div class="body">
+        <h3>Device Authorization <span class="flowcard-status ok">✓ Recommended</span></h3>
+        <p>For input-constrained devices — smart TVs, consoles, CLIs. You finish the login on your phone. (RFC 8628.)</p>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+  </section>
+
+  <section>
+    <h2>The retired flows</h2>
+    <p class="muted">These still exist in the wild and in old tutorials, so it’s worth understanding them — and exactly why
+      modern guidance (RFC&nbsp;9700) says <strong>don’t use them for new work</strong>.</p>
+
+    <a class="hub-row" href="flow-implicit.html" style="margin-top:6px">
+      <div class="ic">🌐</div>
+      <div class="body">
+        <h3>Implicit grant <span class="flowcard-status bad">✗ Retired</span></h3>
+        <p>Returned tokens directly in the URL fragment for early SPAs. No PKCE, no back channel — tokens leaked too easily. Replaced by Code + PKCE.</p>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="hub-row" href="flow-ropc.html">
+      <div class="ic">🔓</div>
+      <div class="body">
+        <h3>Resource Owner Password Credentials <span class="flowcard-status bad">✗ Retired</span></h3>
+        <p>The app collected your real username &amp; password. It reintroduced the exact “password anti-pattern” OAuth was built to kill.</p>
+      </div>
+      <div class="arrow">→</div>
+    </a>
+  </section>
+
+  <section>
+    <h2>All flows at a glance</h2>
+    <table>
+      <thead><tr><th>Flow</th><th>User present?</th><th>Client type</th><th>Tokens via</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><a href="authorization-code-flow.html">Authorization Code + PKCE</a></td><td>Yes</td><td>Public or confidential</td><td>Back channel (code → token)</td><td><span class="chip ok">✓ Recommended</span></td></tr>
+        <tr><td><a href="flow-client-credentials.html">Client Credentials</a></td><td>No</td><td>Confidential</td><td>Back channel</td><td><span class="chip ok">✓ Recommended</span></td></tr>
+        <tr><td><a href="flow-device-code.html">Device Authorization</a></td><td>Yes (on 2nd device)</td><td>Public</td><td>Polling, back channel</td><td><span class="chip ok">✓ Recommended</span></td></tr>
+        <tr><td><a href="flow-implicit.html">Implicit</a></td><td>Yes</td><td>Public (SPA)</td><td>Front channel (URL fragment)</td><td><span class="chip bad">✗ Retired</span></td></tr>
+        <tr><td><a href="flow-ropc.html">Password (ROPC)</a></td><td>Yes</td><td>Any</td><td>Direct credential POST</td><td><span class="chip bad">✗ Retired</span></td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <span class="tag info">// also worth knowing</span>
+      <p>The <strong>Refresh Token</strong> grant isn’t a way to <em>start</em> a flow — it’s a supporting grant that
+      renews access tokens obtained by the flows above. It’s covered on the <a href="tokens.html">Tokens</a> page.</p>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="roles.html"><span class="dir">← prev</span><span class="ttl">02 · Roles &amp; key terms</span></a>
+    <a class="next" href="authorization-code-flow.html"><span class="dir">start with →</span><span class="ttl">Authorization Code + PKCE</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>OAuth 2.0 flows · grounded in RFC 6749, RFC 7636, RFC 8628 &amp; RFC 9700.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

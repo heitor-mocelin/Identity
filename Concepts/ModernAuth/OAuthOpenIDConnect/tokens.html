@@ -6,6 +6,7 @@
 <title>Tokens: Access, Refresh &amp; Bearer — Auth Guide</title>
 <meta name="description" content="What OAuth tokens are, how bearer tokens travel per RFC 6750, lifetimes, and refresh tokens." />
 <script src="app.js"></script>
+<script src="flow.js"></script>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -17,7 +18,7 @@
       <a href="index.html">Home</a>
       <a href="why.html">Why</a>
       <a href="roles.html">Roles</a>
-      <a href="authorization-code-flow.html">Flow</a>
+      <a href="flows.html">Flows</a>
       <a href="tokens.html" class="active">Tokens</a>
       <a href="openid-connect.html">OIDC</a>
       <a href="security.html">Security</a>
@@ -69,6 +70,15 @@
     </div>
     <p class="muted" style="font-size:0.9rem;margin-top:12px">OAuth 2.0 itself doesn’t mandate a format — both are valid.
       The resource server and authorization server just need to agree.</p>
+    <p>When the token <em>is</em> a JWT, it’s three Base64URL parts joined by dots — header, payload, signature:</p>
+    <div class="jwt">
+      <span class="jwt-seg h">eyJhbGciOiJSUzI1NiJ9</span><span class="jwt-dot">.</span><span class="jwt-seg p">eyJzdWIiOiIyNDgyODk3NjEwMDEiLCJzY29wZSI6InBob3Rvcy5yZWFkIiwiZXhwIjoxNzE4OTAwMDAwfQ</span><span class="jwt-dot">.</span><span class="jwt-seg s">dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk</span>
+    </div>
+    <div class="jwt-legend">
+      <div class="lg h"><h4><span class="sw"></span>Header</h4><p>The signing algorithm.</p></div>
+      <div class="lg p"><h4><span class="sw"></span>Payload</h4><p>Claims: subject, scope, expiry…</p></div>
+      <div class="lg s"><h4><span class="sw"></span>Signature</h4><p>Lets the API validate it locally.</p></div>
+    </div>
   </section>
 
   <section>
@@ -114,6 +124,7 @@
     <h2>Refresh tokens: staying signed in, safely</h2>
     <p>A <strong>refresh token</strong> is a longer-lived credential whose only job is to obtain <em>new</em> access tokens
       when the old one expires — quietly, on the back channel, without involving you.</p>
+    <div class="seqflow" data-flow="token-refresh"></div>
     <div class="terminal">
       <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">refreshing an access token — RFC 6749 §6</span></div>
 <pre><span class="cmd">POST</span> /token  <span class="out">HTTP/1.1</span>
@@ -158,7 +169,7 @@
   </section>
 
   <div class="pager">
-    <a class="prev" href="authorization-code-flow.html"><span class="dir">← prev</span><span class="ttl">03 · The Authorization Code flow</span></a>
+    <a class="prev" href="flows.html"><span class="dir">← prev</span><span class="ttl">03 · OAuth 2.0 flows</span></a>
     <a class="next" href="openid-connect.html"><span class="dir">next →</span><span class="ttl">05 · OpenID Connect &amp; ID tokens</span></a>
   </div>
 

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resource Owner Password Credentials (Retired) — OAuth 2.0 Flows</title>
+<meta name="description" content="The retired OAuth 2.0 Resource Owner Password Credentials (ROPC) grant: how it worked, why handing your password to apps is dangerous, and what to use instead." />
+<script src="app.js"></script>
+<script src="flow.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="flows.html" class="active">Flows</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">OAuth &amp; OIDC</a><span class="sep">/</span>
+      <a href="flows.html">Flows</a><span class="sep">/</span>
+      <span class="here">Password (ROPC)</span>
+    </nav>
+    <div class="kicker">// Flows — retired ⚠</div>
+    <h1>Resource Owner Password Credentials <span style="font-size:0.5em;vertical-align:middle" class="chip bad">✗ Retired</span></h1>
+    <div class="statline">
+      <span class="chip bad">✗ Do not use</span>
+      <span class="chip neutral">Reintroduces the password anti-pattern</span>
+      <span class="chip neutral">RFC 6749 §4.3 · RFC 9700</span>
+    </div>
+    <p class="lead">Often shortened to <strong>ROPC</strong>, this flow let an app collect your <em>actual</em> username and
+      password and trade them for a token. It was meant only as a stopgap for migrating legacy apps — and it’s now
+      <strong>retired</strong> because it undoes the very thing OAuth was invented to fix.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="callout danger">
+      <span class="tag">This defeats the purpose of OAuth</span>
+      <p>The <a href="why.html">whole point of OAuth</a> is to <em>stop</em> apps from handling your password. ROPC puts the
+      password right back in the app’s hands. RFC&nbsp;9700 says it <strong>MUST NOT be used</strong>. Prefer
+      <a href="authorization-code-flow.html">Authorization Code + PKCE</a>.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it worked</h2>
+    <p>The app showed its <em>own</em> login form, you typed your real credentials into it, and the app POSTed them to the
+      token endpoint with <code class="inl">grant_type=password</code>. In return it got tokens — but only by seeing,
+      handling, and potentially storing your password along the way.</p>
+    <div class="seqflow" data-flow="ropc"></div>
+    <p class="muted">Steps 1, 2 and 4 are red: your password is exposed to the app, and the protections of a real login
+      (consent, MFA, federation) are all bypassed.</p>
+  </section>
+
+  <section>
+    <h2>What the wire looked like</h2>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">token request (RFC 6749 §4.3)</span></div>
+<pre><span class="cmd">POST</span> /token  <span class="out">HTTP/1.1</span>
+<span class="out">Host: auth.example.com</span>
+<span class="out">Content-Type: application/x-www-form-urlencoded</span>
+
+<span class="k">grant_type</span>=<span class="s">password</span>
+&amp;<span class="k">username</span>=<span class="s">ada@example.com</span>      <span class="c"># ⚠ the user's real login</span>
+&amp;<span class="k">password</span>=<span class="s">hunter2-for-real</span>      <span class="c"># ⚠ the user's real password, seen by the app</span>
+&amp;<span class="k">scope</span>=<span class="s">photos.read</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why it was retired — the problems</h2>
+    <table>
+      <thead><tr><th>Problem</th><th>Why it’s dangerous</th></tr></thead>
+      <tbody>
+        <tr><td>The app sees your password</td><td>It can log it, store it, reuse it, or leak it in a breach — the exact “password anti-pattern” OAuth set out to eliminate.</td></tr>
+        <tr><td>No consent screen</td><td>There’s no moment where you see and approve <em>what</em> the app may access; it’s all-or-nothing.</td></tr>
+        <tr><td>Breaks MFA</td><td>A simple username/password POST can’t carry a second factor, push approval, or step-up challenge.</td></tr>
+        <tr><td>Breaks federation / SSO</td><td>If you log in via an external identity provider or social login, there’s no password for the app to collect at all.</td></tr>
+        <tr><td>Trains bad habits</td><td>It conditions users to type their primary password into <em>any</em> app — a phishing dream.</td></tr>
+        <tr><td>Wide blast radius</td><td>One compromised app means a compromised password, and every service that shares it.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>What to use instead</h2>
+    <p>For interactive logins, use <a href="authorization-code-flow.html">Authorization Code + PKCE</a>: the user
+      authenticates <em>directly</em> with the authorization server (which can enforce MFA, SSO, and consent), and the app
+      only ever receives tokens — never the password.</p>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-top:0">❌ ROPC</h3>
+        <ul class="muted" style="margin-bottom:0">
+          <li>App handles your password</li>
+          <li>No consent, no MFA, no SSO</li>
+          <li>Phishing-friendly habit</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">✅ Authorization Code + PKCE</h3>
+        <ul class="muted" style="margin-bottom:0">
+          <li>You log in at the auth server</li>
+          <li>MFA, SSO &amp; consent all work</li>
+          <li>App sees only scoped tokens</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="tag info">// edge case</span>
+      <p>The only places ROPC was ever tolerated were tightly-controlled first-party migrations off legacy systems. Even
+      there, modern guidance is to move to a redirect-based flow as soon as possible.</p>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="flow-implicit.html"><span class="dir">← prev flow</span><span class="ttl">Implicit (retired)</span></a>
+    <a class="next" href="tokens.html"><span class="dir">next chapter →</span><span class="ttl">04 · Tokens</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Resource Owner Password Credentials (retired) · RFC 6749 §4.3, RFC 9700.</span>
+    <span><a href="flows.html">← flows hub</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -294,3 +294,106 @@ footer.site a { color: var(--text-muted); }
   background: var(--accent-soft); border-radius: 6px; padding: 2px 7px; margin-left: 8px;
 }
 @media (max-width: 600px) { .hub-row { grid-template-columns: 48px 1fr; } .hub-row .arrow { display: none; } }
+
+/* ============================================================
+   Animated sequence-flow diagram
+   ============================================================ */
+.seqflow {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px 18px 14px; box-shadow: var(--shadow-soft); margin: 22px 0;
+}
+.seqflow .seq-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+.seqflow .seq-title { font-family: var(--mono); font-size: 0.84rem; color: var(--text-muted); }
+.seqflow .seq-count { font-family: var(--mono); font-size: 0.8rem; color: var(--accent); white-space: nowrap; }
+.seqflow svg { width: 100%; height: auto; display: block; overflow: visible; }
+.seq-life { stroke: var(--border); stroke-width: 2; stroke-dasharray: 3 5; }
+.seq-actor { fill: var(--surface-soft); stroke: var(--border-strong); stroke-width: 1.5; }
+.seq-actor-label { fill: var(--text); font: 600 14px var(--sans); }
+.seq-actor-icon { font-size: 19px; }
+.seq-arrow { stroke: var(--border-strong); stroke-width: 2; fill: none; transition: stroke .3s ease, opacity .3s ease, stroke-width .3s ease; }
+.seq-label { fill: var(--text-muted); font: 500 12.5px var(--sans); transition: fill .3s ease, opacity .3s ease; }
+.seq-step.is-future .seq-arrow { opacity: .25; }
+.seq-step.is-future .seq-label { opacity: .3; }
+.seq-step.is-past .seq-arrow { stroke: var(--accent); opacity: .55; }
+.seq-step.is-active .seq-arrow { stroke: var(--accent); stroke-width: 3.5; }
+.seq-step.is-active .seq-label { fill: var(--text); font-weight: 700; }
+.seq-packet { fill: var(--accent); stroke: var(--accent-fg); stroke-width: 1.5; filter: drop-shadow(0 0 4px var(--accent)); }
+.seq-caption { margin-top: 12px; min-height: 44px; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; padding: 10px 14px; font-size: 0.95rem; color: var(--text); line-height: 1.5; }
+.seq-caption b { color: var(--accent); font-family: var(--mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 6px; }
+.seq-controls { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.seq-btn { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); border-radius: 8px; height: 34px; min-width: 40px; padding: 0 11px; cursor: pointer; font-size: 0.92rem; font-family: var(--sans); line-height: 1; }
+.seq-btn:hover { border-color: var(--accent); color: var(--accent); }
+.seq-btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.seq-dots { display: flex; gap: 7px; margin-left: auto; align-items: center; }
+.seq-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-strong); cursor: pointer; transition: background .2s ease, transform .2s ease; padding: 0; border: none; }
+.seq-dot.on { background: var(--accent); transform: scale(1.3); }
+
+/* ============================================================
+   JWT anatomy
+   ============================================================ */
+.jwt { font-family: var(--mono); font-size: 0.9rem; word-break: break-all; line-height: 1.9; background: var(--term-bg); border: 1px solid var(--term-border); border-radius: 12px; padding: 16px 18px; margin: 18px 0 10px; box-shadow: var(--shadow); }
+.jwt-seg { padding: 2px 4px; border-radius: 5px; transition: background .2s ease; }
+.jwt-seg.h { color: #ff8aa0; }
+.jwt-seg.p { color: #5fd0f0; }
+.jwt-seg.s { color: #5fe0a0; }
+.jwt-dot { color: var(--term-dim); }
+.jwt-legend { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); margin: 0 0 6px; }
+.jwt-legend .lg { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+.jwt-legend .lg .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 7px; vertical-align: middle; }
+.jwt-legend .lg.h .sw { background: #ff5f7a; } .jwt-legend .lg.h h4 { color: #e0556e; }
+.jwt-legend .lg.p .sw { background: #2bb6e0; } .jwt-legend .lg.p h4 { color: #1f93b8; }
+.jwt-legend .lg.s .sw { background: #25c47e; } .jwt-legend .lg.s h4 { color: #1c9c63; }
+.jwt-legend h4 { margin: 0 0 3px; font-size: 0.9rem; }
+.jwt-legend p { margin: 0; font-size: 0.82rem; color: var(--text-muted); }
+@media (max-width: 640px) { .jwt-legend { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   Assertion / nested anatomy stack
+   ============================================================ */
+.anat { border: 2px solid var(--accent); border-radius: 14px; padding: 14px; margin: 18px 0; background: var(--accent-soft); }
+.anat > .anat-h { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+.anat-block { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 11px 14px; margin-bottom: 9px; box-shadow: var(--shadow-soft); }
+.anat-block:last-child { margin-bottom: 0; }
+.anat-block h4 { margin: 0 0 3px; font-size: 0.95rem; }
+.anat-block h4 .tagk { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; margin-left: 7px; }
+.anat-block p { margin: 0; font-size: 0.86rem; color: var(--text-muted); }
+.anat-block.seal { border-style: dashed; border-color: var(--ok); }
+.anat-block.seal h4 .tagk { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+
+/* ============================================================
+   Standards timeline
+   ============================================================ */
+.timeline { margin: 22px 0; }
+.timeline svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tl-axis { stroke: var(--border-strong); stroke-width: 2; }
+.tl-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 3; }
+.tl-dot.draw { animation: tlpop .5s ease both; }
+.tl-year { fill: var(--text); font: 700 15px var(--mono); }
+.tl-name { fill: var(--text); font: 600 14px var(--sans); }
+.tl-desc { fill: var(--text-muted); font: 400 12px var(--sans); }
+.tl-seg { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 600; stroke-dashoffset: 600; animation: tldraw 1.6s ease forwards; }
+@keyframes tldraw { to { stroke-dashoffset: 0; } }
+@keyframes tlpop { from { transform: scale(0); } to { transform: scale(1); } }
+.tl-dot { transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-seg { animation: none; stroke-dashoffset: 0; }
+  .tl-dot.draw { animation: none; }
+}
+
+/* warn (retired-flow weakness) steps */
+.seq-step.is-warn.is-active .seq-arrow { stroke: var(--danger); }
+.seq-step.is-warn.is-active .seq-label { fill: var(--danger); font-weight: 700; }
+.seq-step.is-warn.is-past .seq-arrow { stroke: var(--danger); opacity: .5; }
+.seq-caption.warn { background: color-mix(in srgb, var(--danger) 12%, transparent); border-left-color: var(--danger); }
+.seq-caption.warn b { color: var(--danger); }
+
+/* flow status chips */
+.statline { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.chip { font-family: var(--mono); font-size: 0.74rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.03em; }
+.chip.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.chip.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.chip.neutral { color: var(--text-muted); background: var(--surface-soft); border: 1px solid var(--border); }
+.flowcard-status { font-family: var(--mono); font-size: 0.72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.flowcard-status.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.flowcard-status.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.hub-row .body h3 .flowcard-status { margin-left: 8px; vertical-align: middle; }
