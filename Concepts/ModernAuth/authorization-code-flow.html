@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Authorization Code Flow (+ PKCE) — Auth Guide</title>
+<meta name="description" content="A step-by-step walkthrough of the OAuth 2.0 Authorization Code flow and how PKCE protects public clients." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="authorization-code-flow.html" class="active">Flow</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">// 03 — The main flow</div>
+    <h1>The Authorization Code flow (+ PKCE)</h1>
+    <p class="lead">This is <em>the</em> flow — the one you should reach for in almost every app with a user.
+      It looks like a lot of redirects, but each step exists for a precise security reason. Let’s walk it slowly.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The one-sentence idea</h2>
+    <div class="card">
+      <p style="margin:0">The app sends you to the authorization server to log in; the server sends you back to the app
+        with a short, single-use <strong>code</strong>; the app then quietly swaps that code (in a direct, back-channel call)
+        for the actual <strong>tokens</strong>.</p>
+    </div>
+    <p class="muted" style="margin-top:14px">Why the two-step (code, then token) dance? So the powerful tokens never travel
+      through the browser’s address bar where they could leak. Hold that thought — it pays off below.</p>
+  </section>
+
+  <section>
+    <h2>Step by step</h2>
+    <div class="flow">
+      <div class="step"><div class="n">1</div><div class="b">
+        <h4>You click “Connect”</h4>
+        <p>In the photo-printing app (the <span class="pill">client</span>), you click “Connect my photo account.”</p>
+      </div></div>
+      <div class="step"><div class="n">2</div><div class="b">
+        <h4>The app redirects you to the authorization server</h4>
+        <p>Your browser is sent to the authorization endpoint with a query string describing the request: which app, what
+          scopes, where to return, and an anti-CSRF <code class="inl">state</code>.</p>
+      </div></div>
+      <div class="step"><div class="n">3</div><div class="b">
+        <h4>You authenticate &amp; consent</h4>
+        <p>You log in <em>directly</em> with the authorization server (the app never sees this) and approve the requested
+          scopes on the consent screen.</p>
+      </div></div>
+      <div class="step"><div class="n">4</div><div class="b">
+        <h4>The server redirects back with a code</h4>
+        <p>The authorization server bounces your browser back to the app’s pre-registered <code class="inl">redirect_uri</code>,
+          carrying a short-lived <strong>authorization code</strong> and your <code class="inl">state</code> value.</p>
+      </div></div>
+      <div class="step"><div class="n">5</div><div class="b">
+        <h4>The app exchanges the code for tokens — on the back channel</h4>
+        <p>Server-to-server, away from the browser, the app POSTs the code (plus its credentials / PKCE verifier) to the
+          token endpoint and receives an <strong>access token</strong> (and often a refresh token / ID token).</p>
+      </div></div>
+      <div class="step"><div class="n">6</div><div class="b">
+        <h4>The app calls the API with the token</h4>
+        <p>The app presents the access token to the <span class="pill">resource server</span> and finally fetches your photos.</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the wire actually looks like</h2>
+    <p class="muted">Here’s the real HTTP, simplified. First, the redirect to the authorization endpoint (RFC&nbsp;6749 §4.1.1):</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">1 — authorization request (browser redirect)</span></div>
+<pre><span class="cmd">GET</span> /authorize?<span class="k">response_type</span>=<span class="s">code</span>
+            &amp;<span class="k">client_id</span>=<span class="s">printer-app-123</span>
+            &amp;<span class="k">redirect_uri</span>=<span class="s">https://printer.example/callback</span>
+            &amp;<span class="k">scope</span>=<span class="s">photos.read</span>
+            &amp;<span class="k">state</span>=<span class="s">xyz-random-anti-csrf</span>
+            &amp;<span class="k">code_challenge</span>=<span class="s">E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM</span>
+            &amp;<span class="k">code_challenge_method</span>=<span class="s">S256</span>  <span class="c"># ← PKCE</span>
+<span class="out">Host: auth.photos.example</span></pre>
+    </div>
+    <p class="muted">After you approve, the server redirects back (RFC&nbsp;6749 §4.1.2):</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">2 — authorization response (redirect to the app)</span></div>
+<pre><span class="cmd">HTTP/1.1</span> <span class="g">302 Found</span>
+<span class="out">Location:</span> https://printer.example/callback?<span class="k">code</span>=<span class="s">SplxlOBeZQQ</span>&amp;<span class="k">state</span>=<span class="s">xyz-random-anti-csrf</span>
+<span class="c"># the app verifies state matches what it sent, then exchanges the code</span></pre>
+    </div>
+    <p class="muted">Finally, the back-channel token exchange (RFC&nbsp;6749 §4.1.3):</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">3 — token request (server-to-server, no browser)</span></div>
+<pre><span class="cmd">POST</span> /token  <span class="out">HTTP/1.1</span>
+<span class="out">Host: auth.photos.example</span>
+<span class="out">Content-Type: application/x-www-form-urlencoded</span>
+
+<span class="k">grant_type</span>=<span class="s">authorization_code</span>
+&amp;<span class="k">code</span>=<span class="s">SplxlOBeZQQ</span>
+&amp;<span class="k">redirect_uri</span>=<span class="s">https://printer.example/callback</span>
+&amp;<span class="k">client_id</span>=<span class="s">printer-app-123</span>
+&amp;<span class="k">code_verifier</span>=<span class="s">dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk</span>  <span class="c"># ← PKCE proof</span></pre>
+    </div>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">4 — token response</span></div>
+<pre><span class="cmd">HTTP/1.1</span> <span class="g">200 OK</span>
+<span class="out">Content-Type: application/json</span>
+
+{
+  <span class="k">"access_token"</span>: <span class="s">"2YotnFZFEjr1zCsicMWpAA"</span>,
+  <span class="k">"token_type"</span>: <span class="s">"Bearer"</span>,
+  <span class="k">"expires_in"</span>: <span class="g">3600</span>,
+  <span class="k">"refresh_token"</span>: <span class="s">"tGzv3JOkF0XG5Qx2TlKWIA"</span>,
+  <span class="k">"scope"</span>: <span class="s">"photos.read"</span>
+}</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why a <em>code</em> first? Why not just hand over the token?</h2>
+    <p>Great question — and the reason is elegant. The authorization code comes back through the <strong>front channel</strong>
+      (the browser redirect / URL), which is relatively exposed: URLs end up in browser history, server logs, and the
+      <code class="inl">Referer</code> header. The actual tokens are far more sensitive.</p>
+    <p>So OAuth uses the code as a <strong>one-time, short-lived ticket</strong> that’s only useful when redeemed on the
+      <strong>back channel</strong> — a direct, TLS-protected, server-to-server call where the powerful tokens are delivered
+      out of sight. Even if someone glimpses the code in a URL, it’s single-use and useless without the follow-up exchange
+      (and, with PKCE, without the secret verifier).</p>
+    <div class="callout">
+      <span class="tag info">// front channel vs. back channel</span>
+      <p><strong>Front channel</strong> = via the user’s browser (redirects, URLs) — visible, loggable.<br>
+         <strong>Back channel</strong> = direct HTTPS between the app’s server and the authorization server — private.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>PKCE: making this safe for phones &amp; SPAs</h2>
+    <p>The classic flow assumed a <span class="pill">confidential client</span> that could prove itself with a
+      <code class="inl">client_secret</code>. But mobile apps and single-page apps are <span class="pill">public clients</span> —
+      they can’t hide a secret. That left a gap: if an attacker intercepted the authorization code (e.g. via a malicious app
+      registered for the same redirect), they could redeem it themselves.</p>
+    <p><strong>PKCE</strong> (“pixie”, Proof Key for Code Exchange, RFC&nbsp;7636) closes that gap with a clever
+      one-time secret the app makes up on the spot:</p>
+
+    <div class="flow">
+      <div class="step"><div class="n">A</div><div class="b">
+        <h4>Invent a secret (the “verifier”)</h4>
+        <p>Before starting, the app generates a random <code class="inl">code_verifier</code> and keeps it private.</p>
+      </div></div>
+      <div class="step"><div class="n">B</div><div class="b">
+        <h4>Send only its fingerprint (the “challenge”)</h4>
+        <p>It sends <code class="inl">code_challenge = SHA256(code_verifier)</code> in the initial authorization request.
+          The fingerprint is public; the verifier stays hidden.</p>
+      </div></div>
+      <div class="step"><div class="n">C</div><div class="b">
+        <h4>Prove it at exchange time</h4>
+        <p>When swapping the code for tokens, the app includes the original <code class="inl">code_verifier</code>. The server
+          hashes it and checks it matches the challenge it saw earlier.</p>
+      </div></div>
+    </div>
+
+    <p>An attacker who steals the code can’t use it, because they never had the secret verifier — only its hash.
+      Today, <strong>PKCE is recommended for <em>all</em> clients</strong>, public and confidential alike (RFC&nbsp;9700).</p>
+
+    <div class="callout ok">
+      <span class="tag">Modern default</span>
+      <p>Authorization Code + PKCE is the recommended flow for web apps, SPAs, mobile, and desktop. The old <em>Implicit</em>
+      flow (which returned tokens directly in the URL) is now discouraged precisely because it skipped this protection.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>A note on the other flows</h2>
+    <table>
+      <thead><tr><th>Flow</th><th>When it fits</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Client Credentials</strong></td><td>No user at all — a backend service talking to an API as itself. The app authenticates with its own credentials and gets a token.</td></tr>
+        <tr><td><strong>Device Authorization</strong> (RFC 8628)</td><td>Input-constrained devices (TVs, CLIs). You enter a code on your phone to authorize the device.</td></tr>
+        <tr><td><strong>Implicit</strong> / <strong>Password</strong></td><td>Legacy. Avoid for new work — see the <a href="roles.html">Roles</a> and <a href="security.html">Security</a> pages.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="roles.html"><span class="dir">← prev</span><span class="ttl">02 · Roles &amp; key terms</span></a>
+    <a class="next" href="tokens.html"><span class="dir">next →</span><span class="ttl">04 · Tokens: access, refresh &amp; bearer</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Authorization Code flow · grounded in RFC 6749 §4.1, RFC 7636 (PKCE).</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

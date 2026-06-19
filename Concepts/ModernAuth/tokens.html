@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tokens: Access, Refresh &amp; Bearer — Auth Guide</title>
+<meta name="description" content="What OAuth tokens are, how bearer tokens travel per RFC 6750, lifetimes, and refresh tokens." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="authorization-code-flow.html">Flow</a>
+      <a href="tokens.html" class="active">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">// 04 — Tokens</div>
+    <h1>Tokens: access, refresh &amp; bearer</h1>
+    <p class="lead">Tokens are the currency of OAuth. Here’s what they actually are, the different kinds, how they
+      travel across the wire, and why their short lifetimes are a feature, not a bug.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>What <em>is</em> a token, really?</h2>
+    <p>An <strong>access token</strong> is, in the words of RFC&nbsp;6749, simply “a string representing an access
+      authorization issued to the client.” That’s it — a string. It encodes (directly or by reference) a specific
+      <strong>scope</strong>, <strong>lifetime</strong>, and other access attributes.</p>
+    <p>Think of it as a <strong>concert wristband</strong>. The box office (authorization server) checked your ID and
+      payment once; now the wristband alone gets you through every gate. Security staff (the resource server) just glance
+      at the band — they don’t re-run your whole purchase.</p>
+    <div class="callout">
+      <span class="tag info">// the abstraction (RFC 6750 §1.3)</span>
+      <p>“The access token provides an abstraction, replacing different authorization constructs (e.g., username and
+      password) … This abstraction enables issuing access tokens valid for a short time period, as well as removing the
+      resource server’s need to understand a wide range of authentication schemes.”</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Two shapes of access token</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-top:0">📦 Self-contained (e.g. JWT)</h3>
+        <p class="muted">The token <em>carries</em> its own data — scopes, expiry, subject — signed so the resource server
+          can validate it locally without a network call. Fast, but harder to revoke instantly.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">🎫 Reference (“opaque”)</h3>
+        <p class="muted">The token is just a random handle. The resource server (or a token-introspection endpoint) looks it
+          up to find what it grants. Easy to revoke, but needs a lookup.</p>
+      </div>
+    </div>
+    <p class="muted" style="font-size:0.9rem;margin-top:12px">OAuth 2.0 itself doesn’t mandate a format — both are valid.
+      The resource server and authorization server just need to agree.</p>
+  </section>
+
+  <section>
+    <h2>“Bearer” tokens: whoever holds it, wields it</h2>
+    <p>Most access tokens are <strong>bearer tokens</strong>, defined in RFC&nbsp;6750. The name is the warning label:</p>
+    <div class="callout danger">
+      <span class="tag">Bearer = cash</span>
+      <p>“Any party in possession of a bearer token (a ‘bearer’) can use it … <strong>without demonstrating possession of a
+      cryptographic key</strong>.” Like a $20 bill: whoever holds it can spend it. So bearer tokens <em>must</em> be
+      protected in storage and in transit — which is why TLS is mandatory.</p>
+    </div>
+    <p>RFC&nbsp;6750 specifies how to send a bearer token. The strongly preferred way is the HTTP
+      <code class="inl">Authorization</code> header:</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">calling the resource server — RFC 6750 §2.1</span></div>
+<pre><span class="cmd">GET</span> /photos  <span class="out">HTTP/1.1</span>
+<span class="out">Host: api.photos.example</span>
+<span class="k">Authorization:</span> <span class="g">Bearer</span> <span class="s">mF_9.B5f-4.1JqM</span></pre>
+    </div>
+    <p class="muted">RFC&nbsp;6750 also allows a form-encoded body parameter or a URL query parameter — but the query-string
+      method is discouraged, because tokens in URLs leak into logs, history, and referrers.</p>
+    <p>If the token is missing or bad, the resource server replies with a <code class="inl">WWW-Authenticate</code> header
+      and one of three error codes:</p>
+    <table>
+      <thead><tr><th>Error</th><th>Meaning</th><th>HTTP status</th></tr></thead>
+      <tbody>
+        <tr><td><code>invalid_request</code></td><td>The request itself is malformed.</td><td>400</td></tr>
+        <tr><td><code>invalid_token</code></td><td>The token is expired, revoked, or bogus.</td><td>401</td></tr>
+        <tr><td><code>insufficient_scope</code></td><td>Valid token, but it lacks the scope for this action.</td><td>403</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Why access tokens expire so fast</h2>
+    <p>Access tokens are deliberately <strong>short-lived</strong> — often minutes to an hour. That seems inconvenient, but
+      it’s a core security feature: if a bearer token does leak, the damage window is small. A stolen token that expires in
+      15 minutes is far less valuable than a password that works forever.</p>
+    <p>But you don’t want to be redirected to log in every 15 minutes. That’s where the second token comes in.</p>
+  </section>
+
+  <section>
+    <h2>Refresh tokens: staying signed in, safely</h2>
+    <p>A <strong>refresh token</strong> is a longer-lived credential whose only job is to obtain <em>new</em> access tokens
+      when the old one expires — quietly, on the back channel, without involving you.</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">refreshing an access token — RFC 6749 §6</span></div>
+<pre><span class="cmd">POST</span> /token  <span class="out">HTTP/1.1</span>
+<span class="out">Host: auth.photos.example</span>
+<span class="out">Content-Type: application/x-www-form-urlencoded</span>
+
+<span class="k">grant_type</span>=<span class="s">refresh_token</span>
+&amp;<span class="k">refresh_token</span>=<span class="s">tGzv3JOkF0XG5Qx2TlKWIA</span>
+&amp;<span class="k">scope</span>=<span class="s">photos.read</span>   <span class="c"># may request equal-or-narrower scope</span></pre>
+    </div>
+    <p>Because refresh tokens live longer, they’re higher-value targets and get extra protection. RFC&nbsp;6819 and modern
+      practice recommend:</p>
+    <ul>
+      <li><strong>Bind to the client</strong> — a refresh token only works for the <code class="inl">client_id</code> it was issued to.</li>
+      <li><strong>Rotation</strong> — each time you refresh, issue a new refresh token and invalidate the old one. If an old one is reused, that signals theft and the whole chain can be revoked.</li>
+      <li><strong>Revocability</strong> — let users and servers kill a refresh token (e.g. “sign out everywhere”).</li>
+      <li><strong>Restricted issuance</strong> — public clients should only get refresh tokens under stricter conditions.</li>
+    </ul>
+    <div class="callout ok">
+      <span class="tag">Mental model</span>
+      <p>Access token = a <strong>day pass</strong> you flash repeatedly but that expires tonight.
+         Refresh token = your <strong>membership card</strong>, kept safe, used occasionally to get a fresh day pass.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Don’t confuse access tokens with ID tokens</h2>
+    <p>One more token is coming in the next chapter: the <strong>ID token</strong> from OpenID Connect. Keep them straight:</p>
+    <table>
+      <thead><tr><th>Token</th><th>Answers</th><th>Audience (who reads it)</th></tr></thead>
+      <tbody>
+        <tr><td>Access token</td><td>“What may this app do?”</td><td>The resource server / API</td></tr>
+        <tr><td>Refresh token</td><td>“Get me a new access token.”</td><td>The authorization server</td></tr>
+        <tr><td>ID token</td><td>“Who is this user, and how did they log in?”</td><td>The client app itself</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <span class="tag">Don’t do this</span>
+      <p>An access token is <em>not</em> proof of who the user is. It’s opaque to the client and meant for the API. Using it
+      as a login assertion is a classic mistake — that’s the ID token’s job.</p>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="authorization-code-flow.html"><span class="dir">← prev</span><span class="ttl">03 · The Authorization Code flow</span></a>
+    <a class="next" href="openid-connect.html"><span class="dir">next →</span><span class="ttl">05 · OpenID Connect &amp; ID tokens</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Tokens · grounded in RFC 6749 §1.4–1.5 §6, RFC 6750.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

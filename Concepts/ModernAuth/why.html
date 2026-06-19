@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Why OAuth Exists — Auth Guide</title>
+<meta name="description" content="Why OAuth 2.0 was invented: the password anti-pattern and the problem of delegated access." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html" class="active">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="authorization-code-flow.html">Flow</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">// 01 — Why</div>
+    <h1>Why OAuth exists</h1>
+    <p class="lead">Before OAuth, the only way to let an app use your account on another service was to
+      <strong>give it your password</strong>. That was a terrible idea — and fixing it is the entire reason this protocol was born.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The valet-key analogy</h2>
+    <p>
+      Imagine your car has two keys. The <strong>master key</strong> opens everything — doors, trunk, glovebox — and lets you
+      drive anywhere. The <strong>valet key</strong> only starts the engine and opens the door; it can’t open the trunk or
+      glovebox, and you can throw it away after the valet is done.
+    </p>
+    <p>
+      When you hand your car to a valet, you don’t give them the master key. You give them the limited one. <strong>OAuth is the
+      valet key for your online accounts</strong>: it lets an app do one specific job, with limited power, for a limited time —
+      without ever seeing your real password.
+    </p>
+  </section>
+
+  <section>
+    <h2>The “password anti-pattern”</h2>
+    <p>Picture a photo-printing website that offers to print the photos you keep on a separate photo-sharing service.
+      The naïve way to make that work:</p>
+
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">the bad old way</span></div>
+<pre><span class="prompt">printer.example&gt;</span> <span class="cmd">Please enter your photo-service username &amp; password</span>
+<span class="out">  username:</span> <span class="s">you@example.com</span>
+<span class="out">  password:</span> <span class="s">••••••••••••</span>
+
+<span class="c"># the printing site now stores YOUR password and logs in AS YOU</span>
+<span class="c"># it can read, delete, or share EVERYTHING — forever</span></pre>
+    </div>
+
+    <p>RFC&nbsp;6749 lists exactly why this is dangerous. Sharing your credentials with a third party means:</p>
+    <table>
+      <thead><tr><th>Problem</th><th>What it means for you</th></tr></thead>
+      <tbody>
+        <tr><td>Stored passwords</td><td>The third-party app keeps your password around — often in clear text — waiting to be stolen in a breach.</td></tr>
+        <tr><td>Over-broad access</td><td>It gets <em>everything</em> your account can do. No way to say “only my photos, not my messages.”</td></tr>
+        <tr><td>No time limit</td><td>Access lasts until you change your password. There’s no “expires in 1 hour.”</td></tr>
+        <tr><td>All-or-nothing revocation</td><td>To cut off <em>one</em> app you must change your password — which breaks <em>every</em> other app too.</td></tr>
+        <tr><td>Blast radius</td><td>If that one app is hacked, your password — and every service that shares it — is compromised.</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="font-size:0.9rem">Source: RFC 6749, §1 (Introduction).</p>
+  </section>
+
+  <section>
+    <h2>OAuth’s big idea: separate the roles</h2>
+    <p>
+      The breakthrough in OAuth is almost philosophical: <strong>stop treating “the app” and “the user” as the same entity.</strong>
+      The spec puts it this way —
+    </p>
+    <div class="callout">
+      <span class="tag info">// RFC 6749 §1</span>
+      <p>“OAuth addresses these issues by introducing an <strong>authorization layer</strong> and separating the role of the
+      client from that of the resource owner… the client obtains an <strong>access token</strong> — a string denoting a specific
+      scope, lifetime, and other access attributes — instead of using the resource owner’s credentials.”</p>
+    </div>
+    <p>So instead of your password, the app receives a <strong>token</strong>: a limited, expiring, revocable permission slip.
+      The photo printer gets something that effectively says <em>“may read this person’s photos until 4pm today, nothing else.”</em></p>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3 style="margin-top:0">❌ Password sharing</h3>
+        <ul class="muted" style="margin-bottom:0">
+          <li>Full account access</li>
+          <li>Never expires</li>
+          <li>Can’t scope it down</li>
+          <li>Revoke = change password</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">✅ OAuth token</h3>
+        <ul class="muted" style="margin-bottom:0">
+          <li>Only the access you approved (<code class="inl">scope</code>)</li>
+          <li>Expires automatically</li>
+          <li>Granular per app &amp; permission</li>
+          <li>Revoke one app, keep the rest</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>“But isn’t this just logging in?” — authz vs. authn</h2>
+    <p>This trips up almost everyone, so let’s nail it down:</p>
+    <table>
+      <thead><tr><th>Term</th><th>Question it answers</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Authentication</strong> (authn)</td><td>“Who are you?”</td><td>OpenID Connect</td></tr>
+        <tr><td><strong>Authorization</strong> (authz)</td><td>“What are you allowed to do?”</td><td>OAuth 2.0</td></tr>
+      </tbody>
+    </table>
+    <p>
+      OAuth 2.0 was designed for <strong>authorization</strong> — delegated access to resources. People then started
+      (mis)using it to log users in, which is subtly different and led to security pitfalls. That’s exactly why
+      <strong>OpenID Connect</strong> was created: to do authentication <em>properly</em>, on top of OAuth. We cover it on the
+      <a href="openid-connect.html">OIDC page</a>.
+    </p>
+    <div class="callout warn">
+      <span class="tag">Common myth</span>
+      <p>“OAuth logs me in.” Not by itself. Plain OAuth tells an app <em>what it can access</em>, not <em>who you are</em>.
+      The login part is OpenID Connect.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Key takeaways</h2>
+    <div class="card">
+      <ul style="margin:0">
+        <li>Sharing your password with third-party apps is dangerous — the “password anti-pattern.”</li>
+        <li>OAuth replaces password-sharing with <strong>scoped, expiring, revocable tokens</strong>.</li>
+        <li>It works by <strong>separating the user (resource owner) from the app (client)</strong>.</li>
+        <li>OAuth = authorization (“what can this app do?”). Authentication (“who are you?”) is OpenID Connect.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="index.html"><span class="dir">← back</span><span class="ttl">Home</span></a>
+    <a class="next" href="roles.html"><span class="dir">next →</span><span class="ttl">02 · The four roles &amp; key terms</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Why OAuth exists · grounded in RFC 6749 §1.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

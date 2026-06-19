@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenID Connect &amp; ID Tokens — Auth Guide</title>
+<meta name="description" content="How OpenID Connect adds authentication on top of OAuth 2.0: ID tokens, claims, and the UserInfo endpoint." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="authorization-code-flow.html">Flow</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html" class="active">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">// 05 — OpenID Connect</div>
+    <h1>OpenID Connect &amp; ID tokens</h1>
+    <p class="lead">OAuth tells an app <em>what it can do</em>. OpenID Connect adds the missing piece: <em>who you are</em>.
+      It’s the standard behind every “Sign in with…” button — a thin, well-defined layer on top of OAuth.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The one thing OAuth doesn’t do</h2>
+    <p>Recall from the <a href="why.html">Why</a> page: OAuth 2.0 is about <strong>authorization</strong>. It was never
+      designed to answer “who is this user?” People bolted login onto OAuth anyway — by treating an access token, or a call
+      to some profile API, as proof of identity. That was inconsistent and, in several documented cases, insecure.</p>
+    <p><strong>OpenID Connect (OIDC)</strong> standardizes authentication properly. It is published by the OpenID
+      Foundation as <em>OpenID Connect Core 1.0</em>, and it reuses OAuth’s flows wholesale — adding a few precise pieces.</p>
+    <div class="callout">
+      <span class="tag info">// the relationship in one line</span>
+      <p><strong>OpenID Connect = OAuth 2.0 + identity.</strong> Same redirects, same token endpoint, same Authorization Code
+      flow — plus an <strong>ID token</strong>, a special <code class="inl">openid</code> scope, and a standard
+      <strong>UserInfo</strong> endpoint.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What OIDC adds on top of OAuth</h2>
+    <table>
+      <thead><tr><th>Addition</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td>The <code>openid</code> scope</td><td>Including <code class="inl">scope=openid</code> in the request is the signal that turns a plain OAuth exchange into an OIDC one.</td></tr>
+        <tr><td>The ID token</td><td>A signed <strong>JWT</strong> describing the authentication event and the user. This is the new star of the show.</td></tr>
+        <tr><td>The UserInfo endpoint</td><td>A standard API the client can call (with the access token) to fetch profile claims like name and email.</td></tr>
+        <tr><td>Standard claims</td><td>A defined vocabulary — <code class="inl">sub</code>, <code class="inl">name</code>, <code class="inl">email</code>, <code class="inl">picture</code>, etc. — so identity data looks the same everywhere.</td></tr>
+        <tr><td>Discovery &amp; roles</td><td>A well-known metadata document, and clearer role names: the authorization server is called the <strong>OpenID Provider (OP)</strong>; the client is the <strong>Relying Party (RP)</strong>.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>The ID token: a signed “who you are” receipt</h2>
+    <p>The ID token is a <strong>JWT</strong> (JSON Web Token) — three Base64URL parts (header, payload, signature) joined by
+      dots. It’s issued <em>to the client</em>, and the client verifies its signature to trust it. Decoded, the payload
+      (the “claims”) looks like this:</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">id_token payload (decoded JWT)</span></div>
+<pre>{
+  <span class="k">"iss"</span>: <span class="s">"https://accounts.example.com"</span>,   <span class="c"># issuer — who minted this</span>
+  <span class="k">"sub"</span>: <span class="s">"248289761001"</span>,                   <span class="c"># subject — STABLE user id</span>
+  <span class="k">"aud"</span>: <span class="s">"printer-app-123"</span>,                <span class="c"># audience — which client it's for</span>
+  <span class="k">"exp"</span>: <span class="g">1718900000</span>,                       <span class="c"># expiry</span>
+  <span class="k">"iat"</span>: <span class="g">1718896400</span>,                       <span class="c"># issued-at</span>
+  <span class="k">"nonce"</span>: <span class="s">"n-0S6_WzA2Mj"</span>,                 <span class="c"># replay protection</span>
+  <span class="k">"name"</span>: <span class="s">"Ada Lovelace"</span>,
+  <span class="k">"email"</span>: <span class="s">"ada@example.com"</span>
+}</pre>
+    </div>
+    <p>The most important claim is <code class="inl">sub</code> (subject): a <strong>stable, unique identifier</strong> for the
+      user at this provider. Your app should key users on <code class="inl">sub</code>, not on email (emails change and can be
+      reassigned).</p>
+    <div class="callout warn">
+      <span class="tag">Always validate</span>
+      <p>A client must verify the ID token before trusting it: check the signature, that <code class="inl">iss</code> is the
+      expected issuer, that <code class="inl">aud</code> contains your <code class="inl">client_id</code>, that it hasn’t
+      expired, and that the <code class="inl">nonce</code> matches the one you sent. Skipping these is a real-world
+      vulnerability, not a theoretical one.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Putting it together: “Sign in with…”</h2>
+    <p>An OIDC login is just the Authorization Code flow from <a href="authorization-code-flow.html">chapter 3</a> with
+      <code class="inl">scope=openid</code> added. The difference is what comes back:</p>
+    <div class="flow">
+      <div class="step"><div class="n">1</div><div class="b">
+        <h4>App requests <code class="inl">openid</code> (plus a <code class="inl">nonce</code>)</h4>
+        <p>e.g. <code class="inl">scope=openid email profile</code>. The <code class="inl">nonce</code> ties the eventual ID token to this request.</p>
+      </div></div>
+      <div class="step"><div class="n">2</div><div class="b">
+        <h4>You authenticate with the OpenID Provider</h4>
+        <p>Same login + consent screen as OAuth — you approve sharing your identity and the requested profile scopes.</p>
+      </div></div>
+      <div class="step"><div class="n">3</div><div class="b">
+        <h4>App exchanges the code for tokens</h4>
+        <p>The token response now includes an <strong>ID token</strong> alongside the access token.</p>
+      </div></div>
+      <div class="step"><div class="n">4</div><div class="b">
+        <h4>App validates the ID token &amp; logs you in</h4>
+        <p>It checks the signature and claims, reads <code class="inl">sub</code>, and creates your session. Done — you’re signed in.</p>
+      </div></div>
+      <div class="step"><div class="n">5</div><div class="b">
+        <h4>(Optional) Fetch more profile data from UserInfo</h4>
+        <p>The app can call the <code class="inl">/userinfo</code> endpoint with the access token to get additional claims.</p>
+      </div></div>
+    </div>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">calling the UserInfo endpoint</span></div>
+<pre><span class="cmd">GET</span> /userinfo  <span class="out">HTTP/1.1</span>
+<span class="out">Host: accounts.example.com</span>
+<span class="k">Authorization:</span> <span class="g">Bearer</span> <span class="s">2YotnFZFEjr1zCsicMWpAA</span>
+
+<span class="c"># →</span> { <span class="k">"sub"</span>:<span class="s">"248289761001"</span>, <span class="k">"name"</span>:<span class="s">"Ada Lovelace"</span>, <span class="k">"email"</span>:<span class="s">"ada@example.com"</span> }</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>The two-token mental model</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-top:0">🪪 ID token → for the app</h3>
+        <p class="muted" style="margin-bottom:0">“This user is Ada, authenticated at 14:30 by this provider.” Read by the
+          client to establish a login session. <strong>Don’t</strong> send it to APIs.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">🔑 Access token → for the API</h3>
+        <p class="muted" style="margin-bottom:0">“The bearer may read photos.” Sent to resource servers. <strong>Opaque</strong>
+          to the client — don’t try to read identity from it.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="tokens.html"><span class="dir">← prev</span><span class="ttl">04 · Tokens</span></a>
+    <a class="next" href="security.html"><span class="dir">next →</span><span class="ttl">06 · Threats &amp; best practices</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>OpenID Connect · based on OpenID Connect Core 1.0, building on RFC 6749.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

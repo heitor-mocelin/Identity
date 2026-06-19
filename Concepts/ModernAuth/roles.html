@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Roles &amp; Key Terms — Auth Guide</title>
+<meta name="description" content="The four OAuth 2.0 roles and the core vocabulary: clients, scopes, grants, tokens and consent." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html" class="active">Roles</a>
+      <a href="authorization-code-flow.html">Flow</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">// 02 — Roles &amp; vocabulary</div>
+    <h1>The four roles &amp; key terms</h1>
+    <p class="lead">OAuth has its own cast of characters. Learn these four roles and a handful of words, and every
+      diagram in the spec suddenly makes sense.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The four roles</h2>
+    <p>RFC&nbsp;6749 (§1.1) defines exactly four roles. Here they are with a running example: a photo-printing
+      app that wants to print photos you store on a photo-sharing service.</p>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <span class="pill">Resource Owner</span>
+        <h3 style="margin-top:10px">That’s you 🙋</h3>
+        <p class="muted" style="margin-bottom:0">“An entity capable of granting access to a protected resource.” When it’s a person, the spec calls it the <em>end-user</em>. You own the photos and you decide who gets to see them.</p>
+      </div>
+      <div class="card">
+        <span class="pill">Client</span>
+        <h3 style="margin-top:10px">The app asking for access 🖨️</h3>
+        <p class="muted" style="margin-bottom:0">“An application making protected resource requests on behalf of the resource owner.” The photo printer. Note: “client” says nothing about where it runs — server, browser, phone, or TV.</p>
+      </div>
+      <div class="card">
+        <span class="pill">Authorization Server</span>
+        <h3 style="margin-top:10px">The gatekeeper 🛂</h3>
+        <p class="muted" style="margin-bottom:0">“The server issuing access tokens to the client after successfully authenticating the resource owner and obtaining authorization.” It shows you the login + consent screen and hands out tokens.</p>
+      </div>
+      <div class="card">
+        <span class="pill">Resource Server</span>
+        <h3 style="margin-top:10px">Where your stuff lives 🗄️</h3>
+        <p class="muted" style="margin-bottom:0">“The server hosting the protected resources, capable of… responding to protected resource requests using access tokens.” The photo-sharing service’s API that actually holds your photos.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="tag info">// Good to know</span>
+      <p>The authorization server and the resource server are <em>logical</em> roles — they’re often run by the same company
+      (e.g. the photo service runs both), but they can be completely separate. A single authorization server can also issue
+      tokens accepted by many resource servers.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>How the roles relate</h2>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">who talks to whom</span></div>
+<pre> <span class="g">YOU</span> (resource owner)
+  │  approve / deny
+  ▼
+<span class="k">AUTHORIZATION SERVER</span> ──issues token──▶ <span class="cyan c">CLIENT</span> (the app)
+  ▲                                          │
+  │ trusts                                   │ presents token
+  │                                          ▼
+  └────────────────────────────────  <span class="s">RESOURCE SERVER</span> (your data)</pre>
+    </div>
+    <p class="muted">The client never sees your password. It only ever holds a <strong>token</strong> issued by the
+      authorization server, which it shows to the resource server to get your data.</p>
+  </section>
+
+  <section>
+    <h2>The vocabulary you’ll keep hearing</h2>
+    <table>
+      <thead><tr><th>Term</th><th>Plain-language meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>scope</code></td><td>The specific permissions being requested, like <code class="inl">photos.read</code>. Scopes are how you grant “only this, not that.” The user sees them on the consent screen.</td></tr>
+        <tr><td>Authorization grant</td><td>The “permission slip” representing your approval. It’s the thing the client exchanges for a token. There are several <em>grant types</em> (see below).</td></tr>
+        <tr><td>Access token</td><td>The short-lived key the client uses to call the resource server. Covered in depth on the <a href="tokens.html">Tokens</a> page.</td></tr>
+        <tr><td>Refresh token</td><td>A longer-lived credential used to get new access tokens without bothering you again.</td></tr>
+        <tr><td>Consent</td><td>The screen where you see what an app is asking for and click <em>Allow</em> or <em>Deny</em>.</td></tr>
+        <tr><td><code>redirect_uri</code></td><td>The address the authorization server sends you back to after you approve. Pre-registered, and tightly checked (it’s a security-critical value).</td></tr>
+        <tr><td><code>client_id</code></td><td>A public identifier for the app, assigned when the developer registers it with the authorization server.</td></tr>
+        <tr><td><code>state</code></td><td>A random value the client sends and checks on return, to prevent cross-site request forgery (CSRF). More on the <a href="security.html">Security</a> page.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Confidential vs. public clients</h2>
+    <p>RFC&nbsp;6749 (§2.1) splits clients into two types based on one question: <strong>can this app keep a secret?</strong></p>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-top:0">🔒 Confidential clients</h3>
+        <p class="muted">Run somewhere you control — a back-end web server. They can safely store a <code class="inl">client_secret</code> that proves the app’s identity to the authorization server.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">🌐 Public clients</h3>
+        <p class="muted">Run on the user’s device — single-page apps (SPAs), mobile apps, desktop apps. Anyone can crack them open, so they <em>can’t</em> hold a usable secret. These rely on <a href="authorization-code-flow.html">PKCE</a> instead.</p>
+      </div>
+    </div>
+    <div class="callout warn">
+      <span class="tag">Why it matters</span>
+      <p>This single distinction drives almost every “which flow should I use?” decision. A public client can’t prove who it
+      is with a secret, so the protocol needs another way to stop attackers from stealing its codes — that’s what PKCE adds.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Grant types: the menu of flows</h2>
+    <p>An <em>authorization grant</em> can be obtained in different ways. RFC&nbsp;6749 defines four, but modern guidance
+      (RFC&nbsp;9700) has narrowed the recommended list considerably.</p>
+    <table>
+      <thead><tr><th>Grant type</th><th>Used for</th><th>Status today</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Authorization Code</strong></td><td>Web apps, SPAs, mobile — almost everything with a user.</td><td><span style="color:var(--ok)">✓ Recommended</span> (with PKCE)</td></tr>
+        <tr><td><strong>Client Credentials</strong></td><td>App-to-app, no user involved (e.g. a backend job).</td><td><span style="color:var(--ok)">✓ Recommended</span> for machine-to-machine</td></tr>
+        <tr><td><strong>Implicit</strong></td><td>Old browser-based apps; returned tokens directly in the URL.</td><td><span style="color:var(--danger)">✗ Discouraged</span> — use Code + PKCE</td></tr>
+        <tr><td><strong>Resource Owner Password Credentials</strong></td><td>App collects your username/password directly.</td><td><span style="color:var(--danger)">✗ Discouraged</span> — defeats the point</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <span class="tag info">// The takeaway</span>
+      <p>For nearly every modern app with a user, the answer is the <strong>Authorization Code flow with PKCE</strong>.
+      That’s our next chapter.</p>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="why.html"><span class="dir">← prev</span><span class="ttl">01 · Why OAuth exists</span></a>
+    <a class="next" href="authorization-code-flow.html"><span class="dir">next →</span><span class="ttl">03 · The Authorization Code flow</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Roles &amp; terms · grounded in RFC 6749 §1.1, §2.1.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

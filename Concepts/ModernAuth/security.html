@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Threats &amp; Best Practices — Auth Guide</title>
+<meta name="description" content="The OAuth 2.0 threat model (RFC 6819): CSRF, token leakage, open redirectors, and the defenses that stop them." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="authorization-code-flow.html">Flow</a>
+      <a href="tokens.html">Tokens</a>
+      <a href="openid-connect.html">OIDC</a>
+      <a href="security.html" class="active">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">// 06 — Threats &amp; defenses</div>
+    <h1>Threats &amp; best practices</h1>
+    <p class="lead">Every odd-looking detail in OAuth — the <code class="inl">state</code> parameter, the code/token split,
+      strict redirect matching — exists to stop a specific attack. This chapter shows the attacker’s view from RFC&nbsp;6819
+      and the defenses that answer it.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The security mindset</h2>
+    <p>RFC&nbsp;6819 — <em>OAuth 2.0 Threat Model and Security Considerations</em> — assumes a hostile world: attackers can
+      read network traffic that isn’t encrypted, register their own malicious clients, trick users into clicking links, and
+      run scripts in browsers. The protocol’s job is to stay safe <em>anyway</em>. Three principles run through all of it:</p>
+    <div class="grid cols-3">
+      <div class="card"><h3 style="margin-top:0">⏳ Least lifetime</h3><p class="muted" style="margin-bottom:0">Tokens and codes expire fast, shrinking the damage window if one leaks.</p></div>
+      <div class="card"><h3 style="margin-top:0">🎯 Least privilege</h3><p class="muted" style="margin-bottom:0">Scopes and audiences keep each token narrow — it can do exactly one job, nowhere else.</p></div>
+      <div class="card"><h3 style="margin-top:0">🔗 Tight binding</h3><p class="muted" style="margin-bottom:0">Codes and tokens are bound to a client, a redirect URI, and a session — so a stolen one doesn’t fit elsewhere.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The headline threats &amp; their defenses</h2>
+
+    <h3>1 · CSRF on the redirect (session fixation)</h3>
+    <p><strong>Attack:</strong> an attacker starts an authorization flow, captures their own code, and tricks <em>your</em>
+      browser into completing it — silently linking your session to the attacker’s account (or vice-versa).</p>
+    <div class="callout ok">
+      <span class="tag">Defense — the <code>state</code> parameter</span>
+      <p>The client generates a random, unguessable <code class="inl">state</code>, sends it in the request, and verifies the
+      exact same value comes back. A forged callback won’t carry the right <code class="inl">state</code> and is rejected.
+      In OIDC, the <code class="inl">nonce</code> plays a similar role for the ID token.</p>
+    </div>
+
+    <h3>2 · Authorization code interception</h3>
+    <p><strong>Attack:</strong> on mobile, a malicious app registers the same custom redirect scheme and grabs the code as it
+      comes back, then redeems it for tokens.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — PKCE</span>
+      <p>The code is useless without the secret <code class="inl">code_verifier</code> that only the legitimate app holds
+      (see the <a href="authorization-code-flow.html">Flow</a> page). Stealing the code alone gets the attacker nothing.</p>
+    </div>
+
+    <h3>3 · Open redirectors &amp; redirect-URI manipulation</h3>
+    <p><strong>Attack:</strong> if the authorization server is sloppy about where it sends users back, an attacker crafts a
+      request that redirects the code to a site they control.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — exact, pre-registered redirect URIs</span>
+      <p>Servers must register redirect URIs in advance and match them <strong>exactly</strong> (no wildcards, no partial
+      matches). The code is also bound to the redirect URI used to request it.</p>
+    </div>
+
+    <h3>4 · Token leakage in transit &amp; in URLs</h3>
+    <p><strong>Attack:</strong> bearer tokens travel over an unencrypted link, or sit in a URL that ends up in browser
+      history, server logs, or the <code class="inl">Referer</code> header — and get scooped up.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — TLS everywhere + header, not URL</span>
+      <p>TLS is mandatory for every OAuth exchange. Send tokens in the <code class="inl">Authorization: Bearer</code> header,
+      never the query string. And because they’re bearer tokens, keep them out of logs entirely.</p>
+    </div>
+
+    <h3>5 · Phishing via counterfeit servers</h3>
+    <p><strong>Attack:</strong> a fake authorization-server page harvests the user’s real password; or an app embeds a
+      web-view it can read.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — server authentication &amp; system browsers</span>
+      <p>Users (and apps) must verify they’re talking to the genuine server via TLS certificates. Native apps should use the
+      system browser, not an embedded web-view the app can spy on.</p>
+    </div>
+
+    <h3>6 · Replay &amp; theft of long-lived refresh tokens</h3>
+    <p><strong>Attack:</strong> a refresh token is stolen and reused to mint endless access tokens.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — rotation, binding, revocation</span>
+      <p>Rotate refresh tokens on every use and detect reuse of an old one (a theft signal); bind each to its
+      <code class="inl">client_id</code>; and support revocation so a compromised token can be killed.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Threat-to-defense, at a glance</h2>
+    <table>
+      <thead><tr><th>Threat (RFC 6819)</th><th>Primary defense</th></tr></thead>
+      <tbody>
+        <tr><td>CSRF against redirect URI</td><td><code>state</code> parameter / OIDC <code>nonce</code></td></tr>
+        <tr><td>Authorization code interception</td><td>PKCE (RFC 7636)</td></tr>
+        <tr><td>Open redirector / URI manipulation</td><td>Exact-match, pre-registered <code>redirect_uri</code></td></tr>
+        <tr><td>Eavesdropping tokens / codes</td><td>Mandatory TLS</td></tr>
+        <tr><td>Token leak via URLs &amp; logs</td><td>Use the <code>Authorization</code> header, not query params</td></tr>
+        <tr><td>Over-broad access</td><td>Minimal <code>scope</code>; audience-restricted tokens</td></tr>
+        <tr><td>Stolen long-lived tokens</td><td>Short access-token lifetime; refresh-token rotation &amp; revocation</td></tr>
+        <tr><td>Counterfeit server phishing</td><td>Server authentication; system browser for native apps</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>What modern guidance says (RFC 9700)</h2>
+    <p>The IETF later distilled years of experience into <strong>RFC&nbsp;9700, Best Current Practice for OAuth 2.0
+      Security</strong>. Its headline recommendations:</p>
+    <div class="card">
+      <ul style="margin:0">
+        <li><strong>Use Authorization Code + PKCE</strong> for all clients — public <em>and</em> confidential.</li>
+        <li><strong>Do not use the Implicit grant</strong> (tokens in the URL fragment) anymore.</li>
+        <li><strong>Do not use the Resource Owner Password Credentials grant</strong> — it reintroduces password-sharing.</li>
+        <li><strong>Exact redirect-URI matching</strong>, every time.</li>
+        <li><strong>Sender-constrain tokens</strong> where possible (e.g. DPoP / mTLS) so a stolen bearer token can’t be replayed.</li>
+        <li><strong>Rotate refresh tokens</strong> and detect reuse.</li>
+      </ul>
+    </div>
+    <div class="callout warn">
+      <span class="tag">If you remember one thing</span>
+      <p>The two “convenient” legacy flows — Implicit and Password — are now actively discouraged. Reach for
+      <strong>Authorization Code + PKCE</strong>, keep tokens short-lived and out of URLs, and validate everything that
+      comes back.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>You’ve reached the end 🎉</h2>
+    <div class="card">
+      <p style="margin-top:0">You now have the full mental model:</p>
+      <ul>
+        <li><strong>Why</strong> — to stop password-sharing, via scoped, expiring, revocable tokens.</li>
+        <li><strong>Who</strong> — four roles: resource owner, client, authorization server, resource server.</li>
+        <li><strong>How</strong> — the Authorization Code flow with PKCE, splitting code (front channel) from token (back channel).</li>
+        <li><strong>What</strong> — access, refresh, and bearer tokens; ID tokens for identity via OpenID Connect.</li>
+        <li><strong>Safely</strong> — defenses mapped to a concrete threat model.</li>
+      </ul>
+      <p style="margin-bottom:0">From here, the actual RFCs (linked on the <a href="index.html">home page</a>) will read like familiar territory.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sources for this chapter</h2>
+    <ul class="ref-list">
+      <li><a href="https://www.ietf.org/rfc/rfc6819" target="_blank" rel="noopener">RFC 6819</a> — OAuth 2.0 Threat Model and Security Considerations</li>
+      <li><a href="https://www.ietf.org/rfc/rfc6749" target="_blank" rel="noopener">RFC 6749</a> §10 — Security Considerations</li>
+      <li><a href="https://www.ietf.org/rfc/rfc6750" target="_blank" rel="noopener">RFC 6750</a> §5 — Bearer token security</li>
+      <li><a href="https://datatracker.ietf.org/doc/html/rfc7636" target="_blank" rel="noopener">RFC 7636</a> — PKCE</li>
+      <li><a href="https://datatracker.ietf.org/doc/html/rfc9700" target="_blank" rel="noopener">RFC 9700</a> — OAuth 2.0 Security Best Current Practice</li>
+    </ul>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="openid-connect.html"><span class="dir">← prev</span><span class="ttl">05 · OpenID Connect</span></a>
+    <a class="next" href="index.html"><span class="dir">back to →</span><span class="ttl">Home · all chapters</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Threats &amp; best practices · grounded in RFC 6819 &amp; RFC 9700.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
