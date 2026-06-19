@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inside a SAML Assertion — SAML Guide</title>
+<meta name="description" content="The anatomy of a SAML assertion: issuer, subject, conditions, authentication and attribute statements, and the XML signature." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> saml-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="sso-flow.html">SSO Flow</a>
+      <a href="assertions.html" class="active">Assertions</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">SAML</a><span class="sep">/</span>
+      <span class="here">Assertions</span>
+    </nav>
+    <div class="kicker">// 04 — The payload</div>
+    <h1>Inside a SAML assertion</h1>
+    <p class="lead">The assertion is the whole point of SAML — the signed XML document that says “this is who they are,
+      here’s how they logged in, and here’s what we know about them.” Let’s open one up.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The five parts at a glance</h2>
+    <p>Every assertion is built from a predictable set of elements. Here they are before we see the XML:</p>
+    <table>
+      <thead><tr><th>Element</th><th>Answers</th></tr></thead>
+      <tbody>
+        <tr><td><code>&lt;Issuer&gt;</code></td><td>Who minted this assertion? (the IdP’s identifier)</td></tr>
+        <tr><td><code>&lt;Signature&gt;</code></td><td>Proof it’s authentic and untampered (XML Digital Signature)</td></tr>
+        <tr><td><code>&lt;Subject&gt;</code></td><td>Who is this about? (the <code>NameID</code>) + how the SP confirms it</td></tr>
+        <tr><td><code>&lt;Conditions&gt;</code></td><td>When &amp; for whom is it valid? (time window + audience)</td></tr>
+        <tr><td><code>&lt;AuthnStatement&gt;</code></td><td>How &amp; when did they authenticate?</td></tr>
+        <tr><td><code>&lt;AttributeStatement&gt;</code></td><td>What do we know about them? (email, role, groups…)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>A real assertion, annotated</h2>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">assertion.xml (inside the SAMLResponse)</span></div>
+<pre><span class="k">&lt;saml:Assertion</span> <span class="s">Version</span>=<span class="g">"2.0"</span> <span class="s">ID</span>=<span class="g">"_x9f..."</span>
+    <span class="s">IssueInstant</span>=<span class="g">"2026-06-19T19:00:05Z"</span><span class="k">&gt;</span>
+
+  <span class="k">&lt;saml:Issuer&gt;</span><span class="out">https://idp.example.com/saml</span><span class="k">&lt;/saml:Issuer&gt;</span>     <span class="c"># who issued it</span>
+
+  <span class="k">&lt;ds:Signature&gt;</span> <span class="out">...digest + RSA signature...</span> <span class="k">&lt;/ds:Signature&gt;</span>     <span class="c"># tamper-proof seal</span>
+
+  <span class="k">&lt;saml:Subject&gt;</span>                                            <span class="c"># WHO this is about</span>
+    <span class="k">&lt;saml:NameID</span> <span class="s">Format</span>=<span class="g">"...emailAddress"</span><span class="k">&gt;</span><span class="out">ada@example.com</span><span class="k">&lt;/saml:NameID&gt;</span>
+    <span class="k">&lt;saml:SubjectConfirmation</span> <span class="s">Method</span>=<span class="g">"...bearer"</span><span class="k">&gt;</span>
+      <span class="k">&lt;saml:SubjectConfirmationData</span>
+          <span class="s">Recipient</span>=<span class="g">"https://app.example.com/acs"</span>
+          <span class="s">NotOnOrAfter</span>=<span class="g">"2026-06-19T19:05:05Z"</span>
+          <span class="s">InResponseTo</span>=<span class="g">"_a1b2c3"</span><span class="k">/&gt;</span>           <span class="c"># ties back to the AuthnRequest</span>
+    <span class="k">&lt;/saml:SubjectConfirmation&gt;</span>
+  <span class="k">&lt;/saml:Subject&gt;</span>
+
+  <span class="k">&lt;saml:Conditions</span>                                          <span class="c"># WHEN / FOR WHOM it's valid</span>
+      <span class="s">NotBefore</span>=<span class="g">"2026-06-19T19:00:00Z"</span>
+      <span class="s">NotOnOrAfter</span>=<span class="g">"2026-06-19T19:05:00Z"</span><span class="k">&gt;</span>
+    <span class="k">&lt;saml:AudienceRestriction&gt;</span>
+      <span class="k">&lt;saml:Audience&gt;</span><span class="out">https://app.example.com/saml</span><span class="k">&lt;/saml:Audience&gt;</span>  <span class="c"># intended SP</span>
+    <span class="k">&lt;/saml:AudienceRestriction&gt;</span>
+  <span class="k">&lt;/saml:Conditions&gt;</span>
+
+  <span class="k">&lt;saml:AuthnStatement</span> <span class="s">AuthnInstant</span>=<span class="g">"2026-06-19T19:00:04Z"</span><span class="k">&gt;</span>  <span class="c"># HOW they logged in</span>
+    <span class="k">&lt;saml:AuthnContext&gt;</span>
+      <span class="k">&lt;saml:AuthnContextClassRef&gt;</span><span class="out">...PasswordProtectedTransport</span><span class="k">&lt;/saml:AuthnContextClassRef&gt;</span>
+    <span class="k">&lt;/saml:AuthnContext&gt;</span>
+  <span class="k">&lt;/saml:AuthnStatement&gt;</span>
+
+  <span class="k">&lt;saml:AttributeStatement&gt;</span>                                <span class="c"># WHAT we know about them</span>
+    <span class="k">&lt;saml:Attribute</span> <span class="s">Name</span>=<span class="g">"email"</span><span class="k">&gt;&lt;saml:AttributeValue&gt;</span><span class="out">ada@example.com</span><span class="k">&lt;/saml:AttributeValue&gt;&lt;/saml:Attribute&gt;</span>
+    <span class="k">&lt;saml:Attribute</span> <span class="s">Name</span>=<span class="g">"role"</span><span class="k">&gt;&lt;saml:AttributeValue&gt;</span><span class="out">finance-admin</span><span class="k">&lt;/saml:AttributeValue&gt;&lt;/saml:Attribute&gt;</span>
+  <span class="k">&lt;/saml:AttributeStatement&gt;</span>
+
+<span class="k">&lt;/saml:Assertion&gt;</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why each part matters</h2>
+
+    <h3>Subject &amp; NameID — “who”</h3>
+    <p>The <code class="inl">NameID</code> identifies the user. Its <strong>Format</strong> matters: an email is
+      human-friendly but changes; a <code class="inl">persistent</code> opaque ID is stable and privacy-preserving;
+      a <code class="inl">transient</code> ID is throwaway per-session. Pick the most stable identifier your app can key on.</p>
+
+    <h3>SubjectConfirmation — “and here’s the proof it’s for you”</h3>
+    <p>Most SAML SSO uses the <strong>bearer</strong> method: whoever presents the assertion is treated as the subject.
+      That’s why the surrounding checks — <code class="inl">Recipient</code>, <code class="inl">NotOnOrAfter</code>, and
+      <code class="inl">InResponseTo</code> — are essential to stop a stolen assertion being replayed elsewhere.</p>
+
+    <h3>Conditions — “when &amp; for whom”</h3>
+    <p>The <code class="inl">NotBefore</code>/<code class="inl">NotOnOrAfter</code> window keeps assertions short-lived
+      (often a few minutes). The <code class="inl">AudienceRestriction</code> names the <em>one</em> SP this assertion is
+      for — so an assertion minted for App A can’t be used at App B.</p>
+
+    <h3>AuthnStatement — “how they logged in”</h3>
+    <p>The <code class="inl">AuthnContextClassRef</code> tells the SP the strength of authentication — e.g. password over
+      TLS, or multi-factor. A security-sensitive SP can <em>require</em> a stronger context.</p>
+
+    <h3>AttributeStatement — “what we know”</h3>
+    <p>The carrier for user data the SP needs: email, display name, department, group/role. The SP turns these into its
+      own authorization decisions (e.g. “role = finance-admin → show the approvals screen”).</p>
+  </section>
+
+  <section>
+    <h2>The signature: SAML’s foundation of trust</h2>
+    <p>An assertion is only trustworthy because it’s <strong>digitally signed</strong> using
+      <strong>XML Signature (XML-DSig)</strong>. The IdP signs with its private key; the SP verifies with the IdP’s public
+      certificate (from <a href="roles.html">metadata</a>). This guarantees two things:</p>
+    <div class="grid cols-2">
+      <div class="card"><h3 style="margin-top:0">🔏 Integrity</h3><p class="muted" style="margin-bottom:0">If even one character changed in transit, signature verification fails.</p></div>
+      <div class="card"><h3 style="margin-top:0">🪪 Authenticity</h3><p class="muted" style="margin-bottom:0">Only the real IdP holds the private key, so a valid signature proves origin.</p></div>
+    </div>
+    <div class="callout warn">
+      <span class="tag">Verify the right thing</span>
+      <p>An IdP may sign the <code class="inl">Response</code>, the <code class="inl">Assertion</code>, or both. SPs must
+      verify the signature over the <em>element they actually trust</em> and reject anything unsigned. Getting this subtly
+      wrong is the root of the famous “signature wrapping” attacks — see the <a href="security.html">Security</a> chapter.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The SP’s validation checklist</h2>
+    <div class="card">
+      <p style="margin-top:0">Before trusting an assertion, a correct SP checks <em>all</em> of these:</p>
+      <ul style="margin-bottom:0">
+        <li>✅ Signature is valid and made by the expected IdP’s certificate</li>
+        <li>✅ <code class="inl">Issuer</code> is the IdP you trust</li>
+        <li>✅ <code class="inl">Audience</code> matches this SP</li>
+        <li>✅ Current time is within <code class="inl">NotBefore</code> … <code class="inl">NotOnOrAfter</code></li>
+        <li>✅ <code class="inl">Recipient</code> is this SP’s ACS URL</li>
+        <li>✅ <code class="inl">InResponseTo</code> matches a request this SP actually sent (SP-initiated)</li>
+        <li>✅ The assertion hasn’t been seen before (replay protection)</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="sso-flow.html"><span class="dir">← prev</span><span class="ttl">03 · The SSO flow</span></a>
+    <a class="next" href="security.html"><span class="dir">next →</span><span class="ttl">05 · Security &amp; best practices</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Assertions · OASIS SAML 2.0 Core.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

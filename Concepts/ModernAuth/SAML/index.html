@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SAML 2.0 — A Friendly Field Guide</title>
+<meta name="description" content="A plain-language, vendor-agnostic guide to SAML 2.0: enterprise single sign-on explained from first principles to the security model." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> saml-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html" class="active">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="sso-flow.html">SSO Flow</a>
+      <a href="assertions.html">Assertions</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <span class="here">SAML</span>
+    </nav>
+    <div class="kicker">// SAML 2.0, the language of enterprise single sign-on</div>
+    <h1>One login for everything at work.</h1>
+    <p class="lead">
+      When you sign in once at your company and suddenly have access to email, chat, HR, and a dozen other apps —
+      without logging into each — that’s often <strong>SAML</strong> at work. This guide explains <strong>why</strong>
+      it exists, <strong>how</strong> the XML &amp; redirects fit together, and <strong>what</strong> each piece does,
+      from everyday analogies down to the OASIS spec.
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="card">
+      <p class="eyebrow">The 30-second version</p>
+      <p style="margin-top:8px">
+        <strong>SAML</strong> (Security Assertion Markup Language) is an open standard that lets a trusted
+        <strong>Identity Provider</strong> vouch for who you are to many separate <strong>applications</strong>.
+        Instead of each app checking your password, it accepts a signed XML document — an <strong>assertion</strong> —
+        from the provider it trusts. Log in once, use everything: <strong>Single Sign-On (SSO)</strong>.
+      </p>
+      <div class="badge-row" style="margin-top:14px">
+        <span class="pill">SAML&nbsp;=&nbsp;“a trusted party vouches for you, in signed XML”</span>
+        <span class="pill">Released&nbsp;2005&nbsp;·&nbsp;OASIS&nbsp;standard</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The big picture</h2>
+    <p class="muted">Three players, one trusted handshake. Here’s the shape before we name the parts:</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">saml-sso — the 10,000-foot view</span></div>
+<pre>   <span class="g">YOU</span> (the principal / subject)
+    │  1. try to open an app
+    ▼
+ <span class="cyan c">SERVICE PROVIDER</span> (the app)  ──2. "who is this? go authenticate"──▶
+    ▲                                                              │
+    │  4. accepts signed assertion, logs you in                    ▼
+    │                                                  <span class="k">IDENTITY PROVIDER</span>
+    └──────────3. signed SAML assertion ◀── you log in here (once) ─┘</pre>
+    </div>
+    <p class="muted" style="font-size:0.9rem">
+      Don’t worry about the terms yet — the <a href="roles.html">Roles</a> and <a href="sso-flow.html">SSO Flow</a>
+      chapters turn this into plain English.
+    </p>
+  </section>
+
+  <section>
+    <h2>Six chapters</h2>
+    <p class="muted">Read top-to-bottom for the full course, or jump to what you need.</p>
+    <div class="grid cols-2" style="margin-top:18px">
+
+      <a class="concept" href="why.html">
+        <span class="num">01</span>
+        <h3>Why SAML exists</h3>
+        <p>Password sprawl, the helpdesk-reset tax, and the dream of federated single sign-on across organisations.</p>
+        <span class="go">read →</span>
+      </a>
+
+      <a class="concept" href="roles.html">
+        <span class="num">02</span>
+        <h3>Roles &amp; key terms</h3>
+        <p>Identity Provider, Service Provider, principal, assertion, metadata, and the trust that ties them together.</p>
+        <span class="go">read →</span>
+      </a>
+
+      <a class="concept" href="sso-flow.html">
+        <span class="num">03</span>
+        <h3>The SSO flow (SP- &amp; IdP-initiated)</h3>
+        <p>Step by step: AuthnRequest, the Redirect and POST bindings, and how the assertion gets back to the app.</p>
+        <span class="go">read →</span>
+      </a>
+
+      <a class="concept" href="assertions.html">
+        <span class="num">04</span>
+        <h3>Inside a SAML assertion</h3>
+        <p>The anatomy of the XML: subject, conditions, authentication &amp; attribute statements, and the digital signature.</p>
+        <span class="go">read →</span>
+      </a>
+
+      <a class="concept" href="security.html">
+        <span class="num">05</span>
+        <h3>Security &amp; best practices</h3>
+        <p>Signature wrapping, replay, audience &amp; timing checks — the OASIS security model and how to not get burned.</p>
+        <span class="go">read →</span>
+      </a>
+
+      <a class="concept" href="../OAuthOpenIDConnect/index.html">
+        <span class="num">06</span>
+        <h3>SAML vs OAuth / OIDC →</h3>
+        <p>When to use which, and how the worlds connect. Jump to the companion OAuth &amp; OpenID Connect guide.</p>
+        <span class="go">compare →</span>
+      </a>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="callout">
+      <span class="tag info">// A note on neutrality</span>
+      <p>This guide is <strong>vendor-agnostic</strong>. SAML 2.0 is an open OASIS standard implemented by many identity
+      products. We describe the protocol itself — not any single product — so the mental model works everywhere.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Primary sources</h2>
+    <p class="muted">Grounded in the official OASIS SAML 2.0 specification set:</p>
+    <ul class="ref-list">
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Core</a> — assertions &amp; protocols</li>
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Bindings</a> — how messages travel (Redirect, POST, Artifact)</li>
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-profiles-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Profiles</a> — the Web Browser SSO profile</li>
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Metadata</a> — describing IdPs &amp; SPs</li>
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-sec-consider-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Security and Privacy Considerations</a></li>
+    </ul>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="../index.html"><span class="dir">← up</span><span class="ttl">Modern Auth</span></a>
+    <a class="next" href="why.html"><span class="dir">next →</span><span class="ttl">01 · Why SAML exists</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>A friendly field guide to SAML 2.0 · vendor-neutral.</span>
+    <span>Built from the OASIS SAML 2.0 standards.</span>
+  </div>
+</footer>
+
+</body>
+</html>

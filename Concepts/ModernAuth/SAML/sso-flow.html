@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The SAML SSO Flow — SAML Guide</title>
+<meta name="description" content="Step-by-step Web Browser SSO: SP-initiated and IdP-initiated flows, AuthnRequest, Response, and the Redirect/POST bindings." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> saml-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="sso-flow.html" class="active">SSO Flow</a>
+      <a href="assertions.html">Assertions</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">SAML</a><span class="sep">/</span>
+      <span class="here">SSO Flow</span>
+    </nav>
+    <div class="kicker">// 03 — The main flow</div>
+    <h1>The SSO flow, step by step</h1>
+    <p class="lead">This is the <strong>Web Browser SSO Profile</strong> — the dance you trigger every time you open a
+      SAML-connected app. It’s mostly redirects and one auto-submitting form. Let’s walk it slowly.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>Two ways to start</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-top:0">🅰️ SP-initiated</h3>
+        <p class="muted" style="margin-bottom:0">You go straight to the app first (e.g. open the expense tool). The app
+          notices you’re not logged in and bounces you to the IdP. <strong>The most common case.</strong></p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">🅱️ IdP-initiated</h3>
+        <p class="muted" style="margin-bottom:0">You start at a company portal/dashboard, click an app tile, and the IdP
+          pushes an assertion to the app. No <code class="inl">AuthnRequest</code> — the IdP sends an unsolicited Response.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>SP-initiated SSO — the walk-through</h2>
+    <div class="flow">
+      <div class="step"><div class="n">1</div><div class="b">
+        <h4>You visit the app</h4>
+        <p>You open the Service Provider (the expense tool). It checks for a session and finds none.</p>
+      </div></div>
+      <div class="step"><div class="n">2</div><div class="b">
+        <h4>SP builds an <code class="inl">AuthnRequest</code> and redirects you to the IdP</h4>
+        <p>Using the <strong>HTTP-Redirect</strong> binding, the request is deflated, Base64- and URL-encoded into a
+          <code class="inl">SAMLRequest</code> query parameter. A <code class="inl">RelayState</code> remembers where you were headed.</p>
+      </div></div>
+      <div class="step"><div class="n">3</div><div class="b">
+        <h4>You authenticate at the IdP</h4>
+        <p>If you don’t already have an IdP session, you log in here — password, MFA, whatever the IdP enforces.
+          The SP never sees these credentials.</p>
+      </div></div>
+      <div class="step"><div class="n">4</div><div class="b">
+        <h4>IdP builds a signed <code class="inl">Response</code> with an assertion</h4>
+        <p>It creates an assertion about you (who you are + attributes), signs it, and wraps it in a SAML
+          <code class="inl">Response</code>.</p>
+      </div></div>
+      <div class="step"><div class="n">5</div><div class="b">
+        <h4>IdP returns it via an auto-posting form (HTTP-POST binding)</h4>
+        <p>The IdP sends back an HTML page with a hidden <code class="inl">SAMLResponse</code> field that JavaScript
+          auto-submits to the SP’s <strong>Assertion Consumer Service (ACS)</strong> URL.</p>
+      </div></div>
+      <div class="step"><div class="n">6</div><div class="b">
+        <h4>SP verifies the signature &amp; logs you in</h4>
+        <p>The SP checks the signature against the IdP’s known certificate, validates conditions (audience, timing),
+          reads your identity + attributes, creates a local session, and sends you to your original destination via
+          <code class="inl">RelayState</code>. You’re in. 🎉</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the wire looks like</h2>
+    <p class="muted">Step 2 — the redirect to the IdP (HTTP-Redirect binding). The <code class="inl">SAMLRequest</code>
+      is a compressed, encoded blob; decoded, the XML inside reads like this:</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">1 — redirect to IdP (decoded AuthnRequest)</span></div>
+<pre><span class="cmd">GET</span> https://idp.example.com/sso?<span class="k">SAMLRequest</span>=<span class="s">fVLB...%3D</span>&amp;<span class="k">RelayState</span>=<span class="s">/reports</span>
+
+<span class="c"># the decoded SAMLRequest XML:</span>
+<span class="k">&lt;samlp:AuthnRequest</span>
+    <span class="s">ID</span>=<span class="g">"_a1b2c3"</span> <span class="s">Version</span>=<span class="g">"2.0"</span>
+    <span class="s">IssueInstant</span>=<span class="g">"2026-06-19T19:00:00Z"</span>
+    <span class="s">Destination</span>=<span class="g">"https://idp.example.com/sso"</span>
+    <span class="s">AssertionConsumerServiceURL</span>=<span class="g">"https://app.example.com/acs"</span><span class="k">&gt;</span>
+  <span class="k">&lt;saml:Issuer&gt;</span><span class="out">https://app.example.com/saml</span><span class="k">&lt;/saml:Issuer&gt;</span>
+<span class="k">&lt;/samlp:AuthnRequest&gt;</span></pre>
+    </div>
+    <p class="muted">Step 5 — the IdP’s auto-submitting form (HTTP-POST binding):</p>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">2 — IdP → browser → SP (auto-posted form)</span></div>
+<pre><span class="k">&lt;form</span> <span class="s">method</span>=<span class="g">"post"</span> <span class="s">action</span>=<span class="g">"https://app.example.com/acs"</span><span class="k">&gt;</span>
+  <span class="k">&lt;input</span> <span class="s">type</span>=<span class="g">"hidden"</span> <span class="s">name</span>=<span class="g">"SAMLResponse"</span> <span class="s">value</span>=<span class="g">"PHNhbWxw..."</span><span class="k">/&gt;</span>
+  <span class="k">&lt;input</span> <span class="s">type</span>=<span class="g">"hidden"</span> <span class="s">name</span>=<span class="g">"RelayState"</span> <span class="s">value</span>=<span class="g">"/reports"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/form&gt;</span>
+<span class="c"># &lt;script&gt; auto-submits this form to the SP's ACS endpoint</span></pre>
+    </div>
+    <p class="muted">The decoded <code class="inl">SAMLResponse</code> contains the signed assertion — we dissect it in the
+      <a href="assertions.html">next chapter</a>.</p>
+  </section>
+
+  <section>
+    <h2>Visualising SP-initiated SSO</h2>
+    <div class="terminal">
+      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">web-browser-sso (SP-initiated)</span></div>
+<pre> <span class="g">Browser</span>            <span class="cyan c">Service Provider</span>             <span class="k">Identity Provider</span>
+    │  1. GET /app          │                              │
+    │ ─────────────────────▶│                              │
+    │  2. 302 + SAMLRequest  │                             │
+    │ ◀─────────────────────│                              │
+    │  3. follow redirect ─────────────────────────────────▶│
+    │                       │            4. log in (once)   │
+    │  5. HTML form w/ SAMLResponse (auto-POST) ◀───────────│
+    │ ─── POST SAMLResponse ▶│                              │
+    │                       │ 6. verify sig, create session │
+    │  7. logged in, land on /reports ◀────────────────────│
+    │ ◀─────────────────────│                              │</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>IdP-initiated SSO (and why it’s riskier)</h2>
+    <p>In the IdP-initiated case there’s no <code class="inl">AuthnRequest</code>: the IdP simply POSTs an
+      <em>unsolicited</em> <code class="inl">Response</code> to the SP’s ACS. It’s convenient for portal dashboards, but
+      because the SP never asked for it, it’s harder to defend against replay and certain injection attacks.</p>
+    <div class="callout warn">
+      <span class="tag">Heads-up</span>
+      <p>Prefer <strong>SP-initiated</strong> SSO where you can. Because the SP generated a request with a unique
+      <code class="inl">ID</code>, it can correlate the response to it (via <code class="inl">InResponseTo</code>) — a check
+      that’s impossible for unsolicited IdP-initiated responses. More on the <a href="security.html">Security</a> page.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Single Logout (SLO)</h2>
+    <p>SSO’s mirror image: SAML also defines <strong>Single Logout</strong>, where ending your IdP session can propagate
+      logout to all the SPs you signed into. It’s powerful but notoriously tricky to implement reliably across many apps,
+      so support varies in practice.</p>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="roles.html"><span class="dir">← prev</span><span class="ttl">02 · Roles &amp; key terms</span></a>
+    <a class="next" href="assertions.html"><span class="dir">next →</span><span class="ttl">04 · Inside a SAML assertion</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>SSO flow · OASIS SAML 2.0 Profiles &amp; Bindings.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

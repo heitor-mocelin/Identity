@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SAML Security &amp; Best Practices — SAML Guide</title>
+<meta name="description" content="The SAML threat model: signature wrapping, replay, MITM, unsolicited responses — and the defenses that stop them. Plus SAML vs OAuth/OIDC." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> saml-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="sso-flow.html">SSO Flow</a>
+      <a href="assertions.html">Assertions</a>
+      <a href="security.html" class="active">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">SAML</a><span class="sep">/</span>
+      <span class="here">Security</span>
+    </nav>
+    <div class="kicker">// 05 — Threats &amp; defenses</div>
+    <h1>Security &amp; best practices</h1>
+    <p class="lead">SAML’s safety rests entirely on <strong>signatures verified correctly</strong> and
+      <strong>assertions used exactly once, in the right place, at the right time</strong>. Here’s the attacker’s view
+      and the checks that defeat them.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The security mindset</h2>
+    <p>The OASIS <em>Security and Privacy Considerations</em> document assumes attackers can observe and tamper with
+      browser traffic, lure users to malicious pages, and replay captured messages. Because SAML assertions are usually
+      <strong>bearer</strong> tokens (whoever holds one is treated as the user), the whole model leans on three pillars:</p>
+    <div class="grid cols-3">
+      <div class="card"><h3 style="margin-top:0">🔏 Verify signatures</h3><p class="muted" style="margin-bottom:0">Trust only assertions signed by the expected IdP — and verify the exact element you rely on.</p></div>
+      <div class="card"><h3 style="margin-top:0">⏳ Tight time &amp; use</h3><p class="muted" style="margin-bottom:0">Short validity windows + one-time use shrink the replay window to near zero.</p></div>
+      <div class="card"><h3 style="margin-top:0">🎯 Bind to context</h3><p class="muted" style="margin-bottom:0">Audience, recipient and request-correlation ensure an assertion only works <em>here</em>, for <em>this</em> request.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The headline threats &amp; their defenses</h2>
+
+    <h3>1 · XML Signature Wrapping (XSW)</h3>
+    <p><strong>Attack:</strong> the classic SAML attack. An attacker takes a legitimately signed assertion and restructures
+      the XML so that the signature still validates against the <em>original</em> element, while the SP’s code actually
+      reads a <em>different</em>, attacker-injected assertion elsewhere in the document.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — verify what you consume</span>
+      <p>Validate the signature and then process <strong>only</strong> the exact element that was signed (by reference/ID),
+      using a hardened, well-tested SAML library. Reject documents with multiple or misplaced assertions. Never trust an
+      unsigned assertion.</p>
+    </div>
+
+    <h3>2 · Assertion replay</h3>
+    <p><strong>Attack:</strong> an attacker captures a valid assertion (e.g. from logs or a leaky referrer) and submits it
+      again to impersonate the user.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — short windows, one-time use, InResponseTo</span>
+      <p>Enforce <code class="inl">NotBefore</code>/<code class="inl">NotOnOrAfter</code> (a few minutes), remember
+      assertion <code class="inl">ID</code>s to reject reuse, and for SP-initiated flows require
+      <code class="inl">InResponseTo</code> to match a request you actually sent.</p>
+    </div>
+
+    <h3>3 · Man-in-the-middle / eavesdropping</h3>
+    <p><strong>Attack:</strong> messages travel over plain HTTP and get read or altered in transit.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — TLS everywhere</span>
+      <p>All SAML browser exchanges must run over HTTPS/TLS, end to end. This protects messages in transit and authenticates
+      the endpoints.</p>
+    </div>
+
+    <h3>4 · Audience / recipient confusion (token redirect)</h3>
+    <p><strong>Attack:</strong> an assertion minted for App A is replayed against App B.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — check Audience &amp; Recipient</span>
+      <p>The SP must reject any assertion whose <code class="inl">AudienceRestriction</code> isn’t itself and whose
+      <code class="inl">Recipient</code> isn’t its own ACS URL.</p>
+    </div>
+
+    <h3>5 · Unsolicited (IdP-initiated) response abuse</h3>
+    <p><strong>Attack:</strong> because IdP-initiated responses aren’t tied to an SP request, they’re easier to forge,
+      replay, or use in login-CSRF.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — prefer SP-initiated; harden ACS</span>
+      <p>Favor SP-initiated SSO so responses carry <code class="inl">InResponseTo</code>. If you must accept IdP-initiated
+      responses, apply strict replay, timing and audience checks, and protect against login CSRF.</p>
+    </div>
+
+    <h3>6 · Open redirect via RelayState</h3>
+    <p><strong>Attack:</strong> <code class="inl">RelayState</code> is attacker-controlled and used to bounce the user to a
+      malicious site after login.</p>
+    <div class="callout ok">
+      <span class="tag">Defense — validate RelayState</span>
+      <p>Treat <code class="inl">RelayState</code> as untrusted input: allow only known internal paths, never arbitrary
+      external URLs.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Threat-to-defense, at a glance</h2>
+    <table>
+      <thead><tr><th>Threat</th><th>Primary defense</th></tr></thead>
+      <tbody>
+        <tr><td>XML signature wrapping</td><td>Verify &amp; consume only the signed element; hardened library</td></tr>
+        <tr><td>Assertion replay</td><td>Short validity; one-time-use ID cache; <code>InResponseTo</code></td></tr>
+        <tr><td>Eavesdropping / MITM</td><td>TLS on every endpoint</td></tr>
+        <tr><td>Token redirect (wrong app)</td><td><code>Audience</code> + <code>Recipient</code> checks</td></tr>
+        <tr><td>Unsolicited response abuse</td><td>Prefer SP-initiated; strict ACS validation</td></tr>
+        <tr><td>Open redirect</td><td>Allow-list <code>RelayState</code> targets</td></tr>
+        <tr><td>Stale trust / key compromise</td><td>Rotate certificates; monitor metadata expiry</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Practical hardening checklist</h2>
+    <div class="card">
+      <ul style="margin:0">
+        <li>Use a <strong>mature, maintained SAML library</strong> — don’t hand-roll signature validation.</li>
+        <li><strong>Require signatures</strong> and reject unsigned assertions/responses.</li>
+        <li>Enforce <strong>short validity windows</strong> and a <strong>replay cache</strong> of seen assertion IDs.</li>
+        <li>Validate <strong>Issuer, Audience, Recipient, timing, and InResponseTo</strong> every time.</li>
+        <li><strong>TLS everywhere</strong>; keep assertions out of URLs, logs, and referrers.</li>
+        <li><strong>Rotate certificates</strong> on a schedule and watch metadata expiry.</li>
+        <li>Prefer <strong>SP-initiated</strong> SSO; allow-list <strong>RelayState</strong>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>SAML vs OAuth 2.0 / OpenID Connect</h2>
+    <p>They overlap but were built for different worlds. Use this to choose — and to translate between them:</p>
+    <table>
+      <thead><tr><th>&nbsp;</th><th>SAML 2.0</th><th>OAuth 2.0 + OpenID Connect</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Primary job</strong></td><td>Authentication + SSO (and attributes)</td><td>OAuth: authorization · OIDC: authentication</td></tr>
+        <tr><td><strong>Format</strong></td><td>XML assertions</td><td>JSON / JWT tokens</td></tr>
+        <tr><td><strong>Transport</strong></td><td>Browser redirects &amp; form POST</td><td>HTTPS redirects + REST/JSON APIs</td></tr>
+        <tr><td><strong>Trust mechanism</strong></td><td>XML-DSig + exchanged metadata/certs</td><td>Signed JWTs + discovery/JWKS</td></tr>
+        <tr><td><strong>Best fit</strong></td><td>Enterprise web SSO</td><td>Web, mobile &amp; API ecosystems</td></tr>
+        <tr><td><strong>Role names</strong></td><td>IdP · SP · principal</td><td>OP/Auth server · client/RP · resource owner</td></tr>
+        <tr><td><strong>“Token” equivalent</strong></td><td>Assertion</td><td>ID token (identity) · access token (API)</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <span class="tag info">// they coexist</span>
+      <p>Many organisations run both: SAML for legacy enterprise apps, OAuth/OIDC for new and mobile ones — often behind the
+      same identity platform. Understanding one makes the other far easier. Read the companion
+      <a href="../OAuthOpenIDConnect/index.html">OAuth 2.0 &amp; OpenID Connect guide →</a></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>You’ve reached the end 🎉</h2>
+    <div class="card">
+      <p style="margin-top:0">The full SAML mental model:</p>
+      <ul style="margin-bottom:0">
+        <li><strong>Why</strong> — to end password sprawl with federated single sign-on.</li>
+        <li><strong>Who</strong> — principal, Identity Provider, Service Provider, joined by pre-established trust.</li>
+        <li><strong>How</strong> — Web Browser SSO: AuthnRequest via Redirect, signed Response via POST.</li>
+        <li><strong>What</strong> — the signed XML assertion: subject, conditions, authn &amp; attribute statements.</li>
+        <li><strong>Safely</strong> — verify signatures correctly; bind by audience, recipient, time and request.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sources for this chapter</h2>
+    <ul class="ref-list">
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-sec-consider-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Security and Privacy Considerations</a></li>
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-core-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Core</a></li>
+      <li><a href="https://docs.oasis-open.org/security/saml/v2.0/saml-profiles-2.0-os.pdf" target="_blank" rel="noopener">SAML 2.0 Profiles</a> (Web Browser SSO)</li>
+    </ul>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="assertions.html"><span class="dir">← prev</span><span class="ttl">04 · Inside a SAML assertion</span></a>
+    <a class="next" href="index.html"><span class="dir">back to →</span><span class="ttl">SAML home</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Security &amp; best practices · OASIS SAML 2.0 Security Considerations.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

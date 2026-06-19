@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Why SAML Exists — SAML Guide</title>
+<meta name="description" content="Why SAML was created: password sprawl, federated single sign-on, and trust between organisations." />
+<script src="app.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="wrap">
+    <span class="brand"><a href="index.html"><span class="dot">$</span> saml-guide</a></span>
+    <div class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="why.html" class="active">Why</a>
+      <a href="roles.html">Roles</a>
+      <a href="sso-flow.html">SSO Flow</a>
+      <a href="assertions.html">Assertions</a>
+      <a href="security.html">Security</a>
+    </div>
+    <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="crumbs">
+      <a href="../../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../../index.html">Concepts</a><span class="sep">/</span>
+      <a href="../index.html">Modern Auth</a><span class="sep">/</span>
+      <a href="index.html">SAML</a><span class="sep">/</span>
+      <span class="here">Why</span>
+    </nav>
+    <div class="kicker">// 01 — Why</div>
+    <h1>Why SAML exists</h1>
+    <p class="lead">Before federated single sign-on, every app was its own island — its own password, its own
+      login page, its own copy of your account. SAML was built to connect those islands with <strong>trust</strong>
+      instead of yet more passwords.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <h2>The hotel key-card analogy</h2>
+    <p>
+      Check into a hotel and the front desk verifies your ID <em>once</em>, then hands you a key card. That card opens
+      your room, the gym, the pool, the lounge — without re-proving who you are at each door. Each door just trusts
+      cards issued by the front desk.
+    </p>
+    <p>
+      <strong>SAML works the same way.</strong> You authenticate <em>once</em> at a central <strong>Identity Provider</strong>
+      (the front desk). It issues a signed “key card” — an <strong>assertion</strong> — that every connected application
+      (each door) trusts, because they trust the issuer. That’s <strong>federated single sign-on</strong>.
+    </p>
+  </section>
+
+  <section>
+    <h2>The problem: password &amp; account sprawl</h2>
+    <p>Imagine a company with 80 SaaS tools. Without SSO, every employee needs an account and password in <em>each</em> one.
+      That creates a familiar mess:</p>
+    <table>
+      <thead><tr><th>Problem</th><th>What it means in practice</th></tr></thead>
+      <tbody>
+        <tr><td>Password fatigue</td><td>Dozens of credentials → people reuse weak passwords or write them down.</td></tr>
+        <tr><td>Helpdesk cost</td><td>“I forgot my password” is one of the highest-volume IT tickets, multiplied per app.</td></tr>
+        <tr><td>Slow on/off-boarding</td><td>A new hire must be created in 80 systems; a leaver must be disabled in 80 systems — easy to miss one.</td></tr>
+        <tr><td>Inconsistent security</td><td>Each app enforces its own (often weaker) password and MFA rules.</td></tr>
+        <tr><td>No central control</td><td>No single place to revoke access, audit logins, or enforce policy.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>The idea: separate “who you are” from “the app”</h2>
+    <p>SAML’s core move is <strong>federation</strong>: let identity live in <em>one</em> trusted place and have apps
+      <em>delegate</em> authentication to it. The app never sees your password — it only sees a signed statement from a
+      provider it already trusts.</p>
+    <div class="callout">
+      <span class="tag info">// the shift</span>
+      <p>From <strong>“every app stores and checks your password”</strong> → to
+      <strong>“one identity provider authenticates you, and vouches for you to every app.”</strong></p>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <h3 style="margin-top:0">❌ Per-app passwords</h3>
+        <ul class="muted" style="margin-bottom:0">
+          <li>A password in every app</li>
+          <li>80 places to off-board a leaver</li>
+          <li>MFA only where each app supports it</li>
+          <li>No central audit</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">✅ SAML federation</h3>
+        <ul class="muted" style="margin-bottom:0">
+          <li>One login at the Identity Provider</li>
+          <li>Disable one account → access gone everywhere</li>
+          <li>Enforce MFA &amp; policy in one place</li>
+          <li>Central logging of every sign-on</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why XML, and why 2005?</h2>
+    <p>SAML 2.0 was standardised by <strong>OASIS in 2005</strong>, in the era of enterprise web applications and
+      SOAP/XML tooling. So it speaks <strong>XML</strong>, secures messages with <strong>XML Digital Signatures</strong>,
+      and is delivered through the browser via HTTP redirects and form posts. It predates the mobile/API-first world that
+      gave rise to OAuth and OpenID Connect — which is exactly why those newer protocols look so different (JSON, JWTs,
+      bearer tokens).</p>
+    <div class="callout warn">
+      <span class="tag">Not obsolete</span>
+      <p>“Old” doesn’t mean “dead.” SAML remains the backbone of enterprise SSO and is deeply embedded in thousands of
+      business applications. You’ll meet it for years to come — often alongside OAuth/OIDC.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Authentication, authorization &amp; SSO</h2>
+    <p>SAML primarily does <strong>authentication</strong> (“prove who you are”) and carries <strong>attributes</strong>
+      about you (department, role, email). Apps then use those attributes to make their own <strong>authorization</strong>
+      decisions. And by reusing one authentication across many apps, it delivers <strong>single sign-on</strong>.</p>
+    <table>
+      <thead><tr><th>Term</th><th>Question</th><th>SAML’s part</th></tr></thead>
+      <tbody>
+        <tr><td>Authentication</td><td>“Who are you?”</td><td>✅ The IdP verifies you and asserts it</td></tr>
+        <tr><td>Attributes</td><td>“What do we know about you?”</td><td>✅ Carried in the assertion (e.g. role, email)</td></tr>
+        <tr><td>Authorization</td><td>“What may you do?”</td><td>The app decides, using those attributes</td></tr>
+        <tr><td>Single Sign-On</td><td>“Do I log in again?”</td><td>✅ No — one IdP session covers many apps</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Key takeaways</h2>
+    <div class="card">
+      <ul style="margin:0">
+        <li>SAML solves <strong>password &amp; account sprawl</strong> across many applications.</li>
+        <li>It uses <strong>federation</strong>: identity lives in one trusted provider that vouches for you to apps.</li>
+        <li>Apps trust signed <strong>XML assertions</strong> instead of handling your password.</li>
+        <li>Result: <strong>single sign-on</strong>, central control, and consistent security.</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="pager">
+    <a class="prev" href="index.html"><span class="dir">← back</span><span class="ttl">SAML home</span></a>
+    <a class="next" href="roles.html"><span class="dir">next →</span><span class="ttl">02 · Roles &amp; key terms</span></a>
+  </div>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span>Why SAML exists · OASIS SAML 2.0.</span>
+    <span><a href="index.html">← all chapters</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

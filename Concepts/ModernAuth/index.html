@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>OAuth 2.0 &amp; OpenID Connect — A Friendly Field Guide</title>
-<meta name="description" content="A plain-language, vendor-agnostic guide to OAuth 2.0 and OpenID Connect: the why, how, and what — from first principles to advanced security." />
+<title>Modern Auth — Identity / Concepts</title>
+<meta name="description" content="The protocols behind modern authentication and authorization: OAuth 2.0, OpenID Connect, and SAML." />
 <script src="app.js"></script>
 <link rel="stylesheet" href="styles.css" />
 </head>
@@ -12,15 +12,11 @@
 
 <nav class="topbar">
   <div class="wrap">
-    <span class="brand"><a href="index.html"><span class="dot">$</span> auth-guide</a></span>
+    <span class="brand"><a href="../../index.html"><span class="dot">$</span> identity</a></span>
     <div class="navlinks">
-      <a href="index.html" class="active">Home</a>
-      <a href="why.html">Why</a>
-      <a href="roles.html">Roles</a>
-      <a href="authorization-code-flow.html">Flow</a>
-      <a href="tokens.html">Tokens</a>
-      <a href="openid-connect.html">OIDC</a>
-      <a href="security.html">Security</a>
+      <a href="../../index.html">Home</a>
+      <a href="../index.html">Concepts</a>
+      <a href="index.html" class="active">Modern Auth</a>
     </div>
     <button class="theme-toggle" aria-label="Toggle dark mode">☾</button>
   </div>
@@ -28,13 +24,16 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="kicker">// OAuth 2.0 &amp; OpenID Connect, explained from scratch</div>
-    <h1>The keys to your data, without giving away your password.</h1>
+    <nav class="crumbs">
+      <a href="../../index.html">Identity</a><span class="sep">/</span>
+      <a href="../index.html">Concepts</a><span class="sep">/</span>
+      <span class="here">Modern Auth</span>
+    </nav>
+    <div class="kicker">// the protocols behind login &amp; access</div>
+    <h1>Modern Auth</h1>
     <p class="lead">
-      Every time you click <em>“Sign in with…”</em> or <em>“Allow this app to access your…”</em>,
-      two quiet protocols do the heavy lifting. This guide explains <strong>why</strong> they exist,
-      <strong>how</strong> they work, and <strong>what</strong> each moving part does — starting with
-      everyday analogies and gradually going as deep as the specs themselves.
+      How do apps let you log in without inventing yet another password — and how do companies sign you into
+      a hundred tools with one identity? Three open standards do most of this work. Pick a guide to go deep.
     </p>
   </div>
 </header>
@@ -42,146 +41,68 @@
 <main class="wrap">
 
   <section>
-    <div class="card">
-      <p class="eyebrow">The 30-second version</p>
-      <p style="margin-top:8px">
-        <strong>OAuth 2.0</strong> is about <strong>authorization</strong> — letting one app do something
-        on your behalf in another app (e.g. “let this photo printer read my photos”) <em>without</em> handing
-        over your password. <strong>OpenID Connect</strong> is a thin layer on top of OAuth that adds
-        <strong>authentication</strong> — proving <em>who you are</em>, so an app can log you in.
-      </p>
-      <div class="badge-row" style="margin-top:14px">
-        <span class="pill">OAuth&nbsp;2.0&nbsp;=&nbsp;“what can this app do?”</span>
-        <span class="pill">OpenID&nbsp;Connect&nbsp;=&nbsp;“who is this user?”</span>
+    <h2>The guides</h2>
+
+    <a class="hub-row" href="OAuthOpenIDConnect/index.html" style="margin-top:18px">
+      <div class="ic">🔑</div>
+      <div class="body">
+        <h3>OAuth 2.0 &amp; OpenID Connect</h3>
+        <p>Delegated access (“let this app use my photos”) and social login (“Sign in with…”). The web &amp; mobile standard. Six chapters from first principles to the threat model.</p>
       </div>
-    </div>
+      <div class="arrow">→</div>
+    </a>
+
+    <a class="hub-row" href="SAML/index.html">
+      <div class="ic">🏢</div>
+      <div class="body">
+        <h3>SAML 2.0</h3>
+        <p>The XML-based standard behind enterprise single sign-on. How your work identity flows from a central provider into every SaaS app. Six chapters, same friendly style.</p>
+      </div>
+      <div class="arrow">→</div>
+    </a>
   </section>
 
   <section>
-    <h2>A picture is worth a thousand redirects</h2>
-    <p class="muted">The canonical OAuth 2.0 dance, straight from RFC&nbsp;6749 — four players passing a request around:</p>
-    <div class="terminal">
-      <div class="bar"><span class="b r"></span><span class="b y"></span><span class="b g"></span><span class="title">abstract-protocol-flow — RFC 6749 §1.2</span></div>
-<pre>     <span class="c">+--------+                               +---------------+</span>
-     <span class="c">|        |--(A)- Authorization Request ->|   Resource    |</span>
-     <span class="c">|        |                               |     Owner     |</span>
-     <span class="c">|        |&lt;-(B)-- Authorization Grant ---|               |</span>
-     <span class="c">|        |                               +---------------+</span>
-     <span class="c">|        |</span>
-     <span class="c">|        |                               +---------------+</span>
-     <span class="c">|        |--(C)-- Authorization Grant -->| Authorization |</span>
-     <span class="g">| Client |</span>                               |     Server    |
-     <span class="c">|        |&lt;-(D)----- Access Token -------|               |</span>
-     <span class="c">|        |                               +---------------+</span>
-     <span class="c">|        |</span>
-     <span class="c">|        |                               +---------------+</span>
-     <span class="c">|        |--(E)----- Access Token ------>|    Resource   |</span>
-     <span class="c">|        |                               |     Server    |</span>
-     <span class="c">|        |&lt;-(F)--- Protected Resource ---|               |</span>
-     <span class="c">+--------+                               +---------------+</span></pre>
-    </div>
-    <p class="muted" style="font-size:0.9rem">
-      Don’t worry if this looks cryptic right now — by the end of the
-      <a href="roles.html">Roles</a> and <a href="authorization-code-flow.html">Flow</a> pages it will read like plain English.
-    </p>
-  </section>
-
-  <section>
-    <h2>Start anywhere — six deep dives</h2>
-    <p class="muted">Read top-to-bottom for a full course, or jump to whatever you need.</p>
-    <div class="grid cols-2" style="margin-top:18px">
-
-      <a class="concept" href="why.html">
-        <span class="num">01</span>
-        <h3>Why OAuth exists</h3>
-        <p>The “password anti-pattern”, what could go wrong before OAuth, and the problem it was invented to solve.</p>
-        <span class="go">read →</span>
-      </a>
-
-      <a class="concept" href="roles.html">
-        <span class="num">02</span>
-        <h3>The four roles &amp; key terms</h3>
-        <p>Resource owner, client, authorization server, resource server — plus scopes, grants, and consent in plain words.</p>
-        <span class="go">read →</span>
-      </a>
-
-      <a class="concept" href="authorization-code-flow.html">
-        <span class="num">03</span>
-        <h3>The Authorization Code flow (+ PKCE)</h3>
-        <p>The recommended flow, step by step. Why the redirect dance is secure, and how PKCE protects mobile &amp; SPA apps.</p>
-        <span class="go">read →</span>
-      </a>
-
-      <a class="concept" href="tokens.html">
-        <span class="num">04</span>
-        <h3>Tokens: access, refresh &amp; bearer</h3>
-        <p>What a token actually is, how bearer tokens travel (RFC 6750), token lifetimes, and refresh tokens.</p>
-        <span class="go">read →</span>
-      </a>
-
-      <a class="concept" href="openid-connect.html">
-        <span class="num">05</span>
-        <h3>OpenID Connect &amp; ID tokens</h3>
-        <p>How authentication is layered on OAuth, what an ID token (JWT) contains, and the UserInfo endpoint.</p>
-        <span class="go">read →</span>
-      </a>
-
-      <a class="concept" href="security.html">
-        <span class="num">06</span>
-        <h3>Threats &amp; best practices</h3>
-        <p>The attacker’s view from RFC 6819: CSRF, token leakage, open redirectors — and how modern guidance defends against them.</p>
-        <span class="go">read →</span>
-      </a>
-
-    </div>
-  </section>
-
-  <section>
-    <h2>Who is this for?</h2>
-    <div class="grid cols-3">
-      <div class="card">
-        <h3 style="margin-top:0">🌱 Total beginners</h3>
-        <p class="muted" style="margin-bottom:0">No coding or security background needed. Each page opens with an everyday analogy before any jargon appears.</p>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">🛠️ Builders</h3>
-        <p class="muted" style="margin-bottom:0">Developers and PMs who keep nodding along to “OAuth” in meetings and want the real mental model.</p>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0">🔐 The curious-deep</h3>
-        <p class="muted" style="margin-bottom:0">Want spec-level detail? Every claim is tied back to the actual RFCs, with the threat model spelled out.</p>
-      </div>
-    </div>
-  </section>
-
-  <section>
+    <h2>Which is which? A quick orientation</h2>
+    <p class="muted">All three solve “let me use this thing without re-entering credentials everywhere,” but they were born for different worlds.</p>
+    <table>
+      <thead><tr><th>&nbsp;</th><th>OAuth 2.0</th><th>OpenID Connect</th><th>SAML 2.0</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Mainly does</strong></td><td>Authorization (delegated access)</td><td>Authentication (login) on top of OAuth</td><td>Authentication + SSO (and attributes)</td></tr>
+        <tr><td><strong>Data format</strong></td><td>Tokens (often JWT)</td><td>ID token (JWT)</td><td>XML assertions</td></tr>
+        <tr><td><strong>Born for</strong></td><td>APIs, mobile &amp; web apps</td><td>Consumer &amp; modern app login</td><td>Enterprise web SSO</td></tr>
+        <tr><td><strong>Typical era</strong></td><td>2012→ (RFC 6749)</td><td>2014→ (OIDC Core 1.0)</td><td>2005→ (OASIS SAML 2.0)</td></tr>
+        <tr><td><strong>You see it as</strong></td><td>“Allow access to…”</td><td>“Sign in with Google/Apple”</td><td>Corporate “Single Sign-On”</td></tr>
+      </tbody>
+    </table>
     <div class="callout">
-      <span class="tag info">// A note on neutrality</span>
-      <p>This guide is deliberately <strong>vendor-agnostic</strong>. OAuth 2.0 and OpenID Connect are open standards
-      implemented by many providers. We describe the protocols themselves — not any single product — so the mental
-      model works everywhere.</p>
+      <span class="tag info">// rule of thumb</span>
+      <p>Building a new app for the open web or mobile? Reach for <strong>OAuth 2.0 + OpenID Connect</strong>.
+      Integrating with an enterprise that already runs central SSO? You’ll likely meet <strong>SAML 2.0</strong>.
+      Plenty of organisations run both.</p>
     </div>
   </section>
 
   <section>
-    <h2>Primary sources</h2>
-    <p class="muted">Everything here is grounded in the official specifications. Read the originals any time:</p>
-    <ul class="ref-list">
-      <li><a href="https://www.ietf.org/rfc/rfc6749" target="_blank" rel="noopener">RFC 6749</a> — The OAuth 2.0 Authorization Framework</li>
-      <li><a href="https://www.ietf.org/rfc/rfc6750" target="_blank" rel="noopener">RFC 6750</a> — OAuth 2.0 Bearer Token Usage</li>
-      <li><a href="https://www.ietf.org/rfc/rfc6819" target="_blank" rel="noopener">RFC 6819</a> — OAuth 2.0 Threat Model and Security Considerations</li>
-      <li><a href="https://datatracker.ietf.org/doc/html/rfc7636" target="_blank" rel="noopener">RFC 7636</a> — Proof Key for Code Exchange (PKCE)</li>
-      <li><a href="https://datatracker.ietf.org/doc/html/rfc9700" target="_blank" rel="noopener">RFC 9700</a> — Best Current Practice for OAuth 2.0 Security</li>
-      <li><a href="https://openid.net/specs/openid-connect-core-1_0.html" target="_blank" rel="noopener">OpenID Connect Core 1.0</a> — OpenID Foundation</li>
-    </ul>
+    <h2>New here? Suggested path</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3 style="margin-top:0">1 · Start with OAuth &amp; OIDC</h3>
+        <p class="muted" style="margin-bottom:0">It introduces the core vocabulary — tokens, scopes, consent, redirects — that makes everything else click.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">2 · Then read SAML</h3>
+        <p class="muted" style="margin-bottom:0">With those ideas in hand, SAML’s assertions and SSO flows map cleanly onto what you already know.</p>
+      </div>
+    </div>
   </section>
 
 </main>
 
 <footer class="site">
   <div class="wrap">
-    <span>A friendly field guide to OAuth 2.0 &amp; OpenID Connect.</span>
-    <span>Built from the official IETF RFCs &amp; OpenID specs · vendor-neutral.</span>
+    <span>Modern Auth · OAuth 2.0, OpenID Connect &amp; SAML.</span>
+    <span><a href="../index.html">← Concepts</a></span>
   </div>
 </footer>
 
