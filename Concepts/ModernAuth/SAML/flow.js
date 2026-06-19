@@ -180,14 +180,35 @@
     return e;
   }
 
+  // Read the live theme palette from CSS variables so we can paint SVG via
+  // presentation attributes (robust in webviews where CSS-class `fill` on SVG
+  // text/shapes is not reliably applied, while attribute fills are).
+  function palette() {
+    const cs = getComputedStyle(document.documentElement);
+    const g = (n, fb) => (cs.getPropertyValue(n).trim() || fb);
+    return {
+      text: g("--text", "#142433"),
+      muted: g("--text-muted", "#5c5c5c"),
+      accent: g("--accent", "#1d6fb8"),
+      accentBright: g("--accent-bright", g("--accent", "#3ea0e6")),
+      accentFg: g("--accent-fg", "#ffffff"),
+      border: g("--border-strong", "#a9c8e6"),
+      life: g("--border", "#cfe0f0"),
+      actorFill: g("--surface-soft", "#f3f8fd"),
+      danger: g("--danger", "#d23f4d"),
+    };
+  }
+
+  const repainters = [];
+
   function render(container, spec) {
     container.innerHTML = "";
     const n = spec.actors.length;
-    const VBW = 1000, marginX = 100;
+    const VBW = 1000, marginX = 120, boxW = 156, boxH = 52;
     const colW = n > 1 ? (VBW - 2 * marginX) / (n - 1) : 0;
     const colX = (i) => marginX + i * colW;
-    const topY = 40, lifeTop = 92, firstRow = 138, rowH = 64;
-    const H = firstRow + spec.steps.length * rowH + 8;
+    const topY = 28, lifeTop = topY + boxH + 10, firstRow = lifeTop + 44, rowH = 56;
+    const H = firstRow + spec.steps.length * rowH + 10;
 
     // header
     const head = htmlEl("div", "seq-head", container);
@@ -197,56 +218,109 @@
 
     // svg
     const svg = svgEl("svg", { viewBox: `0 0 ${VBW} ${H}`, role: "img", "aria-label": spec.title });
-    svg.style.minHeight = Math.min(H, 520) + "px";
+    svg.style.minHeight = Math.min(H, 560) + "px";
     container.appendChild(svg);
 
+    let pal = palette();
+
     const defs = svgEl("defs", {}, svg);
-    const mk = svgEl("marker", { id: "ah-" + Math.random().toString(36).slice(2, 8), markerWidth: 9, markerHeight: 9, refX: 7, refY: 3, orient: "auto", markerUnits: "strokeWidth" }, defs);
-    svgEl("path", { d: "M0,0 L7,3 L0,6 Z", fill: "var(--accent)" }, mk);
-    const arrowId = mk.getAttribute("id");
+    const baseId = "ah-" + Math.random().toString(36).slice(2, 8);
+    function makeMarker(id, color) {
+      const mk = svgEl("marker", { id, markerWidth: 9, markerHeight: 9, refX: 7, refY: 3, orient: "auto", markerUnits: "strokeWidth" }, defs);
+      return svgEl("path", { d: "M0,0 L7,3 L0,6 Z", fill: color }, mk);
+    }
+    const mkBase = makeMarker(baseId + "-b", pal.border);
+    const mkAccent = makeMarker(baseId + "-a", pal.accent);
+    const mkDanger = makeMarker(baseId + "-d", pal.danger);
 
     // lifelines + actor boxes
+    const lifeEls = [], actorRects = [], actorLabels = [];
     for (let i = 0; i < n; i++) {
       const x = colX(i);
-      svgEl("line", { class: "seq-life", x1: x, y1: lifeTop, x2: x, y2: H - 14 }, svg);
-      svgEl("rect", { class: "seq-actor", x: x - 64, y: topY, width: 128, height: 48, rx: 11 }, svg);
-      const ic = svgEl("text", { class: "seq-actor-icon", x: x - 44, y: topY + 30, "text-anchor": "middle" }, svg);
+      lifeEls.push(svgEl("line", { class: "seq-life", x1: x, y1: lifeTop, x2: x, y2: H - 14, stroke: pal.life, "stroke-width": 2, "stroke-dasharray": "3 5" }, svg));
+      actorRects.push(svgEl("rect", { x: x - boxW / 2, y: topY, width: boxW, height: boxH, rx: 12, fill: pal.actorFill, stroke: pal.accent, "stroke-opacity": 0.45, "stroke-width": 1.5 }, svg));
+      const ic = svgEl("text", { x: x, y: topY + 24, "text-anchor": "middle", "font-size": 19 }, svg);
       ic.textContent = spec.actors[i].icon;
-      const lb = svgEl("text", { class: "seq-actor-label", x: x - 28, y: topY + 30, "text-anchor": "start" }, svg);
-      lb.textContent = spec.actors[i].label;
+      const label = spec.actors[i].label;
+      const fs = label.length > 15 ? 11 : 12.5;
+      const lb = svgEl("text", { x: x, y: topY + 43, "text-anchor": "middle", "font-size": fs, "font-weight": 600, "font-family": "var(--sans)", fill: pal.text }, svg);
+      lb.textContent = label;
+      actorLabels.push(lb);
     }
 
     // steps
     const stepEls = [];
     spec.steps.forEach((st, i) => {
       const y = firstRow + i * rowH;
-      const g = svgEl("g", { class: "seq-step is-future" + (st.warn ? " is-warn" : "") }, svg);
+      const g = svgEl("g", {}, svg);
       const fromX = colX(st.from), toX = colX(st.to);
-      let labelX, labelY = y - 9;
+      let arrow, label;
       if (st.from === st.to) {
-        // self-loop to the right of the lifeline
-        const x = fromX, w = 46, hh = 22;
-        svgEl("path", { class: "seq-arrow", d: `M ${x} ${y - hh / 2} h ${w} v ${hh} h ${-w}`, "marker-end": `url(#${arrowId})` }, g);
-        labelX = x + w + 8; labelY = y;
-        const t = svgEl("text", { class: "seq-label", x: labelX, y: labelY, "text-anchor": "start" }, g);
-        t.textContent = st.label;
-        g._self = { x, y, w };
+        const x = fromX, w = 48, hh = 22;
+        arrow = svgEl("path", { d: `M ${x} ${y - hh / 2} h ${w} v ${hh} h ${-w}`, fill: "none", "stroke-width": 2 }, g);
+        label = svgEl("text", { x: x + w + 9, y: y, "text-anchor": "start", "font-size": 12.5, "font-family": "var(--sans)" }, g);
       } else {
         const dir = toX > fromX ? 1 : -1;
         const x1 = fromX + dir * 6, x2 = toX - dir * 6;
-        svgEl("line", { class: "seq-arrow", x1, y1: y, x2, y2: y, "marker-end": `url(#${arrowId})` }, g);
-        labelX = (fromX + toX) / 2;
-        const t = svgEl("text", { class: "seq-label", x: labelX, y: labelY, "text-anchor": "middle" }, g);
-        t.textContent = st.label;
-        g._line = { x1, x2, y };
+        arrow = svgEl("line", { x1, y1: y, x2, y2: y, "stroke-width": 2 }, g);
+        label = svgEl("text", { x: (fromX + toX) / 2, y: y - 9, "text-anchor": "middle", "font-size": 12.5, "font-family": "var(--sans)" }, g);
       }
-      stepEls.push(g);
+      label.textContent = st.label;
+      stepEls.push({ g, arrow, label, warn: !!st.warn });
     });
 
     // packet
     const packetG = svgEl("g", {}, svg);
-    const packet = svgEl("circle", { class: "seq-packet", r: 8, cx: 0, cy: 0 }, packetG);
+    const packet = svgEl("circle", { r: 9, cx: 0, cy: 0, "stroke-width": 2.5 }, packetG);
     packetG.style.opacity = "0";
+
+    function paintStatic(p) {
+      mkBase.setAttribute("fill", p.border);
+      mkAccent.setAttribute("fill", p.accent);
+      mkDanger.setAttribute("fill", p.danger);
+      lifeEls.forEach((l) => l.setAttribute("stroke", p.life));
+      actorRects.forEach((r) => { r.setAttribute("fill", p.actorFill); r.setAttribute("stroke", p.accent); });
+      actorLabels.forEach((l) => l.setAttribute("fill", p.text));
+      packet.setAttribute("fill", p.accentBright);
+      packet.setAttribute("stroke", "rgba(255,255,255,0.9)");
+    }
+
+    function styleStep(s, state) {
+      const warnCol = s.warn ? pal.danger : pal.accent;
+      if (state === "active") {
+        s.arrow.setAttribute("stroke", warnCol);
+        s.arrow.setAttribute("stroke-width", 3.5);
+        s.arrow.setAttribute("opacity", 1);
+        s.arrow.setAttribute("marker-end", `url(#${s.warn ? baseId + "-d" : baseId + "-a"})`);
+        s.label.setAttribute("fill", s.warn ? pal.danger : pal.text);
+        s.label.setAttribute("font-weight", 700);
+        s.label.setAttribute("opacity", 1);
+      } else if (state === "past") {
+        s.arrow.setAttribute("stroke", s.warn ? pal.danger : pal.accent);
+        s.arrow.setAttribute("stroke-width", 2);
+        s.arrow.setAttribute("opacity", 0.55);
+        s.arrow.setAttribute("marker-end", `url(#${s.warn ? baseId + "-d" : baseId + "-a"})`);
+        s.label.setAttribute("fill", pal.muted);
+        s.label.setAttribute("font-weight", 500);
+        s.label.setAttribute("opacity", 0.95);
+      } else {
+        s.arrow.setAttribute("stroke", pal.border);
+        s.arrow.setAttribute("stroke-width", 2);
+        s.arrow.setAttribute("opacity", 0.4);
+        s.arrow.setAttribute("marker-end", `url(#${baseId + "-b"})`);
+        s.label.setAttribute("fill", pal.muted);
+        s.label.setAttribute("font-weight", 500);
+        s.label.setAttribute("opacity", 0.45);
+      }
+    }
+
+    function repaint() {
+      pal = palette();
+      paintStatic(pal);
+      stepEls.forEach((s, i) => styleStep(s, i < cur ? "past" : i === cur ? "active" : "future"));
+    }
+    repainters.push(repaint);
+    paintStatic(pal);
 
     // caption
     const cap = htmlEl("div", "seq-caption", container);
@@ -268,10 +342,7 @@
     let cur = -1, timer = null, playing = false;
 
     function setClasses() {
-      stepEls.forEach((g, i) => {
-        g.classList.remove("is-future", "is-past", "is-active");
-        g.classList.add(i < cur ? "is-past" : i === cur ? "is-active" : "is-future");
-      });
+      stepEls.forEach((s, i) => styleStep(s, i < cur ? "past" : i === cur ? "active" : "future"));
       dotEls.forEach((d, i) => d.classList.toggle("on", i === cur));
       count.textContent = (cur + 1) + " / " + spec.steps.length;
       const st = spec.steps[cur];
@@ -281,23 +352,20 @@
 
     function movePacket(st) {
       if (reduce) { packetG.style.opacity = "0"; return; }
-      let x1, y1, x2, y2;
-      if (st.from === st.to) {
-        const c = colX(st.from);
-        x1 = c; y1 = firstRow + spec.steps.indexOf(st) * rowH;
-        x2 = c + 46; y2 = y1;
-      } else {
-        x1 = colX(st.from); x2 = colX(st.to);
-        y1 = y2 = firstRow + spec.steps.indexOf(st) * rowH;
-      }
+      const idx = spec.steps.indexOf(st);
+      const y = firstRow + idx * rowH;
+      let x1, x2;
+      if (st.from === st.to) { x1 = colX(st.from); x2 = x1 + 48; }
+      else { x1 = colX(st.from); x2 = colX(st.to); }
+      packet.setAttribute("fill", st.warn ? pal.danger : pal.accentBright);
       packetG.style.opacity = "1";
       try {
         packetG.animate(
-          [{ transform: `translate(${x1}px,${y1}px)` }, { transform: `translate(${x2}px,${y2}px)` }],
+          [{ transform: `translate(${x1}px,${y}px)` }, { transform: `translate(${x2}px,${y}px)` }],
           { duration: 650, easing: "cubic-bezier(.45,0,.3,1)", fill: "forwards" }
         );
       } catch (e) {
-        packet.setAttribute("cx", x2); packet.setAttribute("cy", y2);
+        packet.setAttribute("cx", x2); packet.setAttribute("cy", y);
       }
     }
 
@@ -350,5 +418,8 @@
       const spec = FLOWS[c.getAttribute("data-flow")];
       if (spec) render(c, spec);
     });
+    // Repaint all diagrams when the theme changes (data-theme on <html>).
+    const mo = new MutationObserver(() => repainters.forEach((fn) => fn()));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   });
 })();
